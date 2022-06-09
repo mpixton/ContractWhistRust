@@ -1,19 +1,29 @@
-use crate::card::{Card, Rank, Suit};
+use crate::card::Card;
+use crate::rank::Rank;
+use crate::suit::Suit;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 
 pub struct Deck {
-    cards: Vec<Card>,
+    pub cards: Vec<Card>,
 }
 
 impl Deck {
-    pub fn new(total_cards: usize) -> Deck {
+    pub fn new(deck_type: DeckType, pre_shuffled: bool) -> Deck {
+        let total_cards = match deck_type {
+            DeckType::Full => 52,
+        };
+
         let mut cards: Vec<Card> = Vec::with_capacity(total_cards);
 
         for suit in Suit::VALUES.iter() {
             for rank in Rank::VALUES.iter() {
                 cards.push(Card::new(*rank, *suit))
             }
+        }
+
+        if pre_shuffled {
+            cards.shuffle(&mut thread_rng());
         }
 
         Deck { cards }
@@ -34,7 +44,6 @@ impl Deck {
         self
     }
 
-    #[allow(dead_code)]
     pub fn debug_deck(&self) {
         for card in self.cards.iter() {
             println!("{}", card)
@@ -48,4 +57,8 @@ impl Deck {
     pub fn deal(&mut self) -> Card {
         self.cards.pop().unwrap()
     }
+}
+
+pub enum DeckType {
+    Full,
 }
