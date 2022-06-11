@@ -30,10 +30,7 @@ impl<'a> Trick<'a> {
         // Closure that maps the tuple of (Card, Players) to something more sort friendly
         let create_sortable_tuples = |e: &(Card, &'a String)| -> (i32, i32, &'a String) {
             let (rank, suit) = e.0.get_value();
-            let suit_value = match points.get(suit) {
-                Some(i) => i,
-                None => &1,
-            };
+            let suit_value = points.get(suit).unwrap_or(&1);
 
             (*suit_value, rank.get_numerical_rank(true), e.1)
         };
@@ -75,7 +72,7 @@ impl<'a> Trick<'a> {
 
     pub fn show_results(&mut self) {
         self.display_trick();
-        println!("");
+        println!();
         self.determine_winner();
     }
 }
