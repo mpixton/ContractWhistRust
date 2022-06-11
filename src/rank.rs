@@ -1,5 +1,6 @@
 use std::fmt;
 
+/// Enum of all Ranks in a French deck of cards.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Rank {
     Ace,
@@ -18,6 +19,7 @@ pub enum Rank {
 }
 
 impl Rank {
+    /// All Ranks for iterating over while creating a deck.
     pub const VALUES: [Rank; 13] = [
         Self::Ace,
         Self::King,
@@ -34,6 +36,7 @@ impl Rank {
         Self::Two,
     ];
 
+    /// Get the numerical representation of the Rank.
     pub fn get_numerical_rank(&self, aces_high: bool) -> i32 {
         match aces_high {
             true => self._aces_high_mapping(),
@@ -41,6 +44,7 @@ impl Rank {
         }
     }
 
+    /// Returns the numerical representation of an Aces High deck.
     fn _aces_high_mapping(&self) -> i32 {
         match &self {
             Rank::Ace => 14,
@@ -59,6 +63,7 @@ impl Rank {
         }
     }
 
+    /// Returns the numerical representation of an Aces Low deck.
     fn _aces_low_mapping(&self) -> i32 {
         match &self {
             Rank::Ace => 14,
@@ -77,6 +82,7 @@ impl Rank {
         }
     }
 }
+
 impl fmt::Display for Rank {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
