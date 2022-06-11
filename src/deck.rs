@@ -9,39 +9,9 @@ pub struct Deck {
 }
 
 impl Deck {
-    pub fn new(deck_type: DeckType, pre_shuffled: bool) -> Deck {
-        let total_cards = match deck_type {
-            DeckType::Full => 52,
-        };
-
-        let mut cards: Vec<Card> = Vec::with_capacity(total_cards);
-
-        for suit in Suit::VALUES.iter() {
-            for rank in Rank::VALUES.iter() {
-                cards.push(Card::new(*rank, *suit))
-            }
-        }
-
-        if pre_shuffled {
-            cards.shuffle(&mut thread_rng());
-        }
-
-        Deck { cards }
-    }
-
-    pub fn shuffle(&mut self, shuffles: Option<i8>) -> &mut Deck {
-        let mut shuffling = || self.cards.shuffle(&mut thread_rng());
-
-        match shuffles {
-            Some(iters) if iters > 1 && iters < 10 => {
-                for i in 1..=iters {
-                    println!("Shuffling... {}", { i });
-                    shuffling();
-                }
-            }
-            _ => shuffling(),
-        }
-        self
+    #[warn(clippy::new_ret_no_self)]
+    pub fn new() -> DeckBuilder {
+        DeckBuilder { cards: Vec::new() }
     }
 
     pub fn debug_deck(&self) {
@@ -61,4 +31,54 @@ impl Deck {
 
 pub enum DeckType {
     Full,
+}
+
+pub struct DeckBuilder {
+    cards: Vec<Card>,
+}
+
+impl DeckBuilder {
+    pub fn deck_type(&mut self, deck_type: DeckType) -> DeckBuilder {
+        let total_cards = match deck_type {
+            DeckType::Full => 52,
+        };
+
+        let mut cards: Vec<Card> = Vec::with_capacity(total_cards);
+
+        for suit in Suit::VALUES.iter() {
+            for rank in Rank::VALUES.iter() {
+                cards.push(Card::new(*rank, *suit))
+            }
+        }
+
+        DeckBuilder { cards }
+    }
+
+    pub fn default_shuffle(mut self) -> Deck {
+        let mut shuffling = || self.cards.shuffle(&mut thread_rng());
+        {
+            for i in 0..7 {
+                println!("Shuffling... {}", { i });
+                shuffling();
+            }
+        }
+
+        Deck { cards: self.cards }
+    }
+
+    pub fn shuffle(mut self, shuffles: Option<i8>) -> Deck {
+        let mut shuffling = || self.cards.shuffle(&mut thread_rng());
+
+        match shuffles {
+            Some(iters) if iters > 1 && iters < 10 => {
+                for i in 1..=iters {
+                    println!("Shuffling... {}", { i });
+                    shuffling();
+                }
+            }
+            _ => shuffling(),
+        }
+
+        Deck { cards: self.cards }
+    }
 }
