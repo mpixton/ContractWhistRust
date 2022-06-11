@@ -3,7 +3,7 @@ use std::fmt;
 use crate::rank::Rank;
 use crate::suit::Suit;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Card {
     rank: Rank,
     suit: Suit,
