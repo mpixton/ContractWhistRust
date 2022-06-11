@@ -1,28 +1,33 @@
-use std::{fmt, io};
+use std::{fmt, hash, io};
 
-// use crate::card::Card;
+use crate::card::Card;
 
 pub trait Player {
-    fn set_name(&mut self);
     fn get_name(&self) -> &String;
-    // fn play_card(&mut self) -> Card;
-    // fn set_hand(&mut self, cards: Vec<Card>);
-    // fn display_hand(&self);
-    // fn get_bid(&mut self) -> i32;
+    fn add_card_to_hand(&mut self, card: Card);
+    fn play_card(&mut self, trump: &Card, led: Option<&Card>) -> Result<Card, ()>;
+    fn display_hand(&self);
+    fn set_player_bid(&self, trump: &Card, tricks_this_bid: &usize) -> usize;
+}
+
+impl fmt::Display for dyn Player {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.get_name())
+    }
 }
 
 #[derive(Debug)]
 pub struct HumanPlayer {
     name: String,
+    hand: Vec<Card>,
 }
 
 impl HumanPlayer {
-    pub fn new() -> HumanPlayer {
-        let mut temp = HumanPlayer {
-            name: String::new(),
-        };
-        temp.set_name();
-        temp
+    pub fn new(name: String) -> HumanPlayer {
+        HumanPlayer {
+            name,
+            hand: Vec::new(),
+        }
     }
 }
 
@@ -31,31 +36,206 @@ impl Player for HumanPlayer {
         &self.name
     }
 
-    fn set_name(&mut self) {
-        let mut name = String::new();
+    fn add_card_to_hand(&mut self, card: Card) {
+        self.hand.push(card)
+    }
+
+    fn display_hand(&self) {
+        for card in &self.hand {
+            println!("{}", card)
+        }
+    }
+
+    fn set_player_bid(&self, trump: &Card, tricks_this_hand: &usize) -> usize {
+        let bid: usize;
+        let max_bids: usize = *tricks_this_hand;
+
         loop {
-            println!("What is your name?");
-            match io::stdin().read_line(&mut name) {
+            let mut input = String::new();
+            println!("Trump this hand is: {}", &trump);
+            println!("What do you bid?");
+            match io::stdin().read_line(&mut input) {
                 Ok(_) => {
-                    let name = name.trim();
-                    match name.is_empty() {
-                        false => {
-                            self.name = name.to_string();
-                            return;
+                    match input.trim().parse::<usize>() {
+                        Ok(num) => {
+                            if 0 < num && num < max_bids {
+                                bid = num;
+                                break;
+                            } else {
+                                println!("Your bid exceeds the number of tricks in the hand.");
+                                println!("Please bid between 0 and {}", max_bids);
+                            }
                         }
-                        true => (),
-                    }
+                        Err(_) => println!("The value you provided is not a number."),
+                    };
                 }
-                Err(_) => (),
+                Err(_) => println!("Error attempting to read input."),
             };
-            println!("There was an error reading your name");
+        }
+        bid
+    }
+
+    #[allow(unused_variables)]
+    fn play_card(&mut self, trump: &Card, led: Option<&Card>) -> Result<Card, ()> {
+        if self.hand.is_empty() {
+            return Err(println!("No cards to play!"));
+        }
+
+        println!("Here is your hand.");
+        self.display_hand();
+        println!("What card would you like to play?");
+
+        loop {
+            let mut index = String::new();
+            io::stdin().read_line(&mut index).unwrap_or(usize::MAX);
+            let index: usize = match index.trim().parse() {
+                Ok(num) => num,
+                Err(_) => usize::MAX,
+            };
+
+            if index < self.hand.len() {
+                return Ok(self.hand.swap_remove(index));
+            } else {
+                println!("Tried selecting a card you don't have.");
+                println!("Here is your hand.");
+                self.display_hand();
+                println!("What card would you like to play?");
+            };
         }
     }
 }
 
-impl fmt::Display for HumanPlayer {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "You are playing as {}", self.name)
+impl hash::Hash for HumanPlayer {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
+}
+
+impl PartialEq for HumanPlayer {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+pub struct AIPlayer {
+    name: String,
+    hand: Vec<Card>,
+}
+
+impl AIPlayer {
+    pub fn new(name: String) -> Self {
+        AIPlayer {
+            name,
+            hand: Vec::new(),
+        }
+    }
+}
+
+impl Player for AIPlayer {
+    fn get_name(&self) -> &String {
+        &self.name
+    }
+
+    fn add_card_to_hand(&mut self, card: Card) {
+        self.hand.push(card)
+    }
+
+    fn display_hand(&self) {
+        for card in &self.hand {
+            println!("{}", card)
+        }
+    }
+
+    #[allow(unused_variables)]
+    fn set_player_bid(&self, trump: &Card, tricks_this_bid: &usize) -> usize {
+        self.hand
+            .iter()
+            .filter(|e| e.get_value().1 == trump.get_value().1)
+            .count()
+    }
+
+    /// Logic for playing a Card
+    /// # Logic
+    /// ```
+    /// If there has been a led card:  
+    ///   Must follow suit and play the lowest ranking card in the led suit  
+    ///   If no cards in the led suit:
+    ///     Play the lowest card in trump suit
+    ///     If no cards in trump suit:
+    ///       Play highest ranking card in whatever suit
+    /// If no led card:
+    ///   Lead with highest trump
+    ///   If no cards in trump:
+    ///     Play highest ranking card
+    /// ```  
+    fn play_card(&mut self, trump: &Card, led: Option<&Card>) -> Result<Card, ()> {
+        // Closure to map Card ranks to integers for easy sorting
+        let rank_cards = |e: &Card| e.get_value().0.get_numerical_rank(true);
+        // Since the led card may be either None (current player is the leader) or Some (current player is following)
+        // check for those two states and determine playing logic
+        match led {
+            // Logic for following in a Trick
+            Some(card) => {
+                // Current player is following another player so is bound to the led suit if they have it
+                // Closure to determine if the Card is in the led suit
+                let is_in_led = |e: &&Card| e.get_value().1 == card.get_value().1;
+                let mut led_suit_cards: Vec<i32> =
+                    self.hand.iter().filter(is_in_led).map(rank_cards).collect();
+                // If player has a led suit card, play the lowest possible
+                if led_suit_cards.iter().count() > 0 {
+                    led_suit_cards.sort_by(|a, b| b.cmp(a));
+                    let card_to_play = self
+                        .hand
+                        .iter()
+                        .find(|e| {
+                            e.get_value().1 == card.get_value().1
+                                && e.get_value().0.get_numerical_rank(true)
+                                    == *led_suit_cards.iter().last().unwrap()
+                        })
+                        .unwrap();
+                    Ok(*card_to_play)
+                // Player has no led suit, so play the lower trump suit card
+                } else {
+                    // Closure to determine if a Card is in the Trump suit
+                    let is_in_trump = |e: &&Card| e.get_value().1 == trump.get_value().1;
+                    let mut trump_suit_cards: Vec<i32> = self
+                        .hand
+                        .iter()
+                        .filter(is_in_trump)
+                        .map(rank_cards)
+                        .collect();
+                    if trump_suit_cards.iter().count() > 0 {
+                        trump_suit_cards.sort_by(|a, b| b.cmp(a));
+                        let card_to_play = self
+                            .hand
+                            .iter()
+                            .find(|e| {
+                                e.get_value().1 == card.get_value().1
+                                    && e.get_value().0.get_numerical_rank(true)
+                                        == *trump_suit_cards.iter().last().unwrap()
+                            })
+                            .unwrap();
+                        Ok(*card_to_play)
+                    } else {
+                        Err(())
+                    }
+                }
+            }
+            // Logic for leading a trick
+            None => Err(()),
+        }
+    }
+}
+
+impl hash::Hash for AIPlayer {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
+}
+
+impl PartialEq for AIPlayer {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
     }
 }
 
