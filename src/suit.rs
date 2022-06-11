@@ -1,5 +1,6 @@
 use std::fmt;
 
+/// Enum of all Suits in a French deck of cards.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Suit {
     Hearts,
@@ -9,6 +10,7 @@ pub enum Suit {
 }
 
 impl Suit {
+    /// All Suits foriterating over while creating a deck.
     pub const VALUES: [Suit; 4] = [Self::Hearts, Self::Clubs, Self::Diamonds, Self::Spades];
 }
 
