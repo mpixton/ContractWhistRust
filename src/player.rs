@@ -16,6 +16,26 @@ impl fmt::Display for dyn Player {
     }
 }
 
+impl fmt::Debug for dyn Player {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.get_name())
+    }
+}
+
+impl hash::Hash for Box<dyn Player> {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.get_name().hash(state);
+    }
+}
+
+impl PartialEq for Box<dyn Player> {
+    fn eq(&self, other: &Self) -> bool {
+        self.get_name() == other.get_name()
+    }
+}
+
+impl Eq for Box<dyn Player> {}
+
 #[derive(Debug)]
 pub struct HumanPlayer {
     name: String,
