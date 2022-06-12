@@ -27,6 +27,28 @@ impl Deck {
     pub fn deal(&mut self) -> Card {
         self.cards.pop().unwrap()
     }
+
+    pub fn debug_trump(&mut self) -> Card {
+        *self
+            .cards
+            .iter()
+            .find(|e: &&Card| {
+                let (rank, suit) = e.get_value();
+                rank == &Rank::Ace && suit == &Suit::Hearts
+            })
+            .unwrap()
+    }
+
+    pub fn debug_deal(&mut self, index: usize) -> Card {
+        let debug_suit = &Suit::VALUES[index % 4];
+        let debug_rank = &Rank::VALUES[index % 7];
+
+        let find_card = |e: &&Card| {
+            let (rank, suit) = e.get_value();
+            rank == debug_rank && suit == debug_suit
+        };
+        *self.cards.iter().find(find_card).unwrap()
+    }
 }
 
 pub enum DeckType {
