@@ -4,13 +4,18 @@ use crate::card::Card;
 use crate::player::Player;
 
 pub struct Hand<'a> {
-    dealer: &'a Box<dyn Player>,
-    trump_card: Card,
+    pub dealer: &'a Box<dyn Player>,
+    pub trump_card: Card,
 }
 
 impl<'a> Hand<'a> {
     pub fn new(dealer: &'a Box<dyn Player>, trump_card: Card) -> Hand {
         Hand { dealer, trump_card }
+    }
+
+    pub fn play_hand(&mut self) {
+        // Move the logic from main into here
+        todo!()
     }
 }
 
