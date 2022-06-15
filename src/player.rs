@@ -4,9 +4,9 @@ use crate::card::Card;
 
 pub trait Player {
     fn get_name(&self) -> &String;
-    fn play_card(&mut self, trump: &Card, led: Option<&Card>, cards: &Vec<Card>) -> Card;
+    fn play_card(&self, trump: &Card, led: Option<&Card>, cards: Vec<Card>) -> (Card, Vec<Card>);
     fn display_hand(&self, cards: &Vec<Card>);
-    fn set_player_bid(&self, trump: &Card, tricks_this_bid: &usize, cards: &Vec<Card>) -> usize;
+    fn get_player_bid(&self, trump: &Card, tricks_this_bid: &usize, cards: &Vec<Card>) -> usize;
 }
 
 impl fmt::Display for dyn Player {
@@ -57,13 +57,14 @@ impl Player for HumanPlayer {
         }
     }
 
-    fn set_player_bid(&self, trump: &Card, tricks_this_hand: &usize, cards: &Vec<Card>) -> usize {
+    fn get_player_bid(&self, trump: &Card, tricks_this_hand: &usize, cards: &Vec<Card>) -> usize {
         let bid: usize;
         let max_bids: usize = *tricks_this_hand;
 
         loop {
             let mut input = String::new();
             println!("Trump this hand is: {}", &trump);
+            self.display_hand(cards);
             println!("What do you bid?");
             match io::stdin().read_line(&mut input) {
                 Ok(_) => {
@@ -86,9 +87,14 @@ impl Player for HumanPlayer {
         bid
     }
 
-    fn play_card(&mut self, trump: &Card, led: Option<&Card>, cards: &Vec<Card>) -> Card {
+    fn play_card(
+        &self,
+        trump: &Card,
+        led: Option<&Card>,
+        mut cards: Vec<Card>,
+    ) -> (Card, Vec<Card>) {
         println!("Here is your hand.");
-        self.display_hand(cards);
+        self.display_hand(&cards);
         println!("Trump is: {}", &trump);
         println!("What card would you like to play?");
 
@@ -108,17 +114,17 @@ impl Player for HumanPlayer {
                     let chosen_card_is_in_led_suit =
                         cards.get(index).unwrap().get_value().1 == led_suit;
                     if has_cards_in_led_suit && chosen_card_is_in_led_suit {
-                        return cards.swap_remove(index);
+                        return (cards.swap_remove(index), cards);
                     } else {
                         println!("You must follow suit!");
                     }
                 } else {
-                    return cards.swap_remove(index);
+                    return (cards.swap_remove(index), cards);
                 }
             } else {
                 println!("Tried selecting a card you don't have.");
                 println!("Here is your hand.");
-                self.display_hand(cards);
+                self.display_hand(&cards);
                 println!("What card would you like to play?");
             };
         }
@@ -147,7 +153,7 @@ impl Player for AIPlayer {
     }
 
     #[allow(unused_variables)]
-    fn set_player_bid(&self, trump: &Card, tricks_this_bid: &usize, cards: &Vec<Card>) -> usize {
+    fn get_player_bid(&self, trump: &Card, tricks_this_bid: &usize, cards: &Vec<Card>) -> usize {
         cards
             .iter()
             .filter(|e| e.get_value().1 == trump.get_value().1)
@@ -168,7 +174,12 @@ impl Player for AIPlayer {
     ///   If no cards in trump:
     ///    Play highest ranking card
     /// ```
-    fn play_card(&mut self, trump: &Card, led: Option<&Card>, cards: &Vec<Card>) -> Card {
+    fn play_card(
+        &self,
+        trump: &Card,
+        led: Option<&Card>,
+        mut cards: Vec<Card>,
+    ) -> (Card, Vec<Card>) {
         // Closure to map Card ranks to integers for easy sorting
         let rank_cards = |e: &Card| e.get_value().0.get_numerical_rank(true);
         // Since the led card may be either None (current player is the leader) or Some (current player is following)
@@ -186,13 +197,13 @@ impl Player for AIPlayer {
                     led_suit_cards.sort_by(|a, b| b.cmp(a));
                     let card_to_play = cards
                         .iter()
-                        .find(|e| {
+                        .position(|e| {
                             e.get_value().1 == card.get_value().1
                                 && e.get_value().0.get_numerical_rank(true)
                                     == *led_suit_cards.iter().last().unwrap()
                         })
                         .unwrap();
-                    *card_to_play
+                    (cards.swap_remove(card_to_play), cards)
                 // Player has no led suit, so play the lowest trump suit card
                 } else {
                     // Closure to determine if a Card is in the Trump suit
@@ -203,25 +214,25 @@ impl Player for AIPlayer {
                         trump_suit_cards.sort_by(|a, b| b.cmp(a));
                         let card_to_play = cards
                             .iter()
-                            .find(|e| {
+                            .position(|e| {
                                 e.get_value().1 == trump.get_value().1
                                     && e.get_value().0.get_numerical_rank(true)
                                         == *trump_suit_cards.iter().last().unwrap()
                             })
                             .unwrap();
-                        *card_to_play
+                        (cards.swap_remove(card_to_play), cards)
                     // Player has no cards in trump, so play the highest card in whatever suit
                     } else {
                         let mut other_cards: Vec<i32> = cards.iter().map(rank_cards).collect();
                         other_cards.sort_by(|a, b| b.cmp(a));
                         let card_to_play = cards
                             .iter()
-                            .find(|e| {
+                            .position(|e| {
                                 e.get_value().0.get_numerical_rank(true)
                                     == *other_cards.first().unwrap()
                             })
                             .unwrap();
-                        *card_to_play
+                        (cards.swap_remove(card_to_play), cards)
                     }
                 }
             }
@@ -235,25 +246,25 @@ impl Player for AIPlayer {
                     trump_suit_cards.sort_by(|a, b| b.cmp(a));
                     let card_to_play = cards
                         .iter()
-                        .find(|e| {
+                        .position(|e| {
                             e.get_value().1 == trump.get_value().1
                                 && e.get_value().0.get_numerical_rank(true)
                                     == *trump_suit_cards.iter().last().unwrap()
                         })
                         .unwrap();
-                    *card_to_play
+                    (cards.swap_remove(card_to_play), cards)
                 // Player has no cards in trump, so play the highest card in whatever suit
                 } else {
                     let mut other_cards: Vec<i32> = cards.iter().map(rank_cards).collect();
                     other_cards.sort_by(|a, b| b.cmp(a));
                     let card_to_play = cards
                         .iter()
-                        .find(|e| {
+                        .position(|e| {
                             e.get_value().0.get_numerical_rank(true)
                                 == *other_cards.first().unwrap()
                         })
                         .unwrap();
-                    *card_to_play
+                    (cards.swap_remove(card_to_play), cards)
                 }
             }
         }

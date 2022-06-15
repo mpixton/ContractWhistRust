@@ -4,18 +4,19 @@
 // Playing: ask each player for their Card
 // Finished: winner is determined based on played Cards
 
+use std::collections::HashMap;
+use std::fmt;
+
 use crate::card::Card;
 use crate::player::Player;
 use crate::suit::Suit;
-
-use std::collections::HashMap;
+use crate::PlayerHands;
 
 /// New Trick struct for using Generic Type Parameters.
 ///
 /// Creating a new Trick will return a [Playing] state, which allows for asking
 /// players for a card and determining the winner.
-pub struct Trick<'a, T: TrickState> {
-    cards_played: HashMap<&'a Box<dyn Player>, Card>,
+pub struct Trick<T: TrickState> {
     extra: T,
 }
 
@@ -23,9 +24,16 @@ pub struct Trick<'a, T: TrickState> {
 ///
 /// Asks [Player]s for their [Card], stores it, and determines the winner of the trick.
 pub struct Playing<'a> {
+    cards_played: HashMap<&'a Box<dyn Player>, Card>,
     players: &'a Vec<Box<dyn Player>>,
     trump_card: &'a Card,
-    player_hands: HashMap<&'a Box<dyn Player>, Vec<Card>>,
+    player_hands: &'a mut PlayerHands<'a>,
+}
+
+pub struct Scoring<'a> {
+    cards_played: HashMap<&'a Box<dyn Player>, Card>,
+    trump_card: &'a Card,
+    players: &'a Vec<Box<dyn Player>>,
 }
 
 /// Final state of the [Trick].
@@ -37,48 +45,69 @@ pub struct Finished<'a> {
 
 pub trait TrickState {}
 impl<'a> TrickState for Playing<'a> {}
+impl<'a> TrickState for Scoring<'a> {}
 impl<'a> TrickState for Finished<'a> {}
 
-impl<'a, T: TrickState> Trick<'a, T> {
+impl<'a, T: TrickState> Trick<T> {
     pub fn new(
         trump_card: &'a Card,
         players: &'a Vec<Box<dyn Player>>,
-        player_hands: HashMap<&'a Box<dyn Player>, Vec<Card>>,
-    ) -> Trick<'a, Playing<'a>> {
+        player_hands: &'a mut PlayerHands<'a>,
+    ) -> Trick<Playing<'a>> {
         Trick {
-            cards_played: HashMap::with_capacity(players.len()),
             extra: Playing {
                 players,
                 trump_card,
                 player_hands,
+                cards_played: HashMap::with_capacity(players.len()),
             },
         }
     }
 }
 
-impl<'a> Trick<'a, Playing<'a>> {
-    pub fn play_trick(&mut self) {
-        for player in self.extra.players.iter() {
+impl<'a> Trick<Playing<'a>> {
+    pub fn play_trick(self) -> Trick<Scoring<'a>> {
+        let mut player_hands = self.extra.player_hands;
+        let players = self.extra.players;
+        let trump_card = self.extra.trump_card;
+
+        let mut cards_played = HashMap::with_capacity(players.len());
+
+        for player in players.iter() {
             let card: Card;
-            if self.cards_played.is_empty() {
-                let player_hand = self.extra.player_hands.get(player).unwrap();
-                card = player.play_card(self.extra.trump_card, None, player_hand);
-                self.cards_played.insert(player, card);
+            let new_hand: Vec<Card>;
+            if cards_played.is_empty() {
+                let player_hand = player_hands.get(player).unwrap().to_owned();
+                (card, new_hand) = player.play_card(self.extra.trump_card, None, player_hand);
             } else {
-                let first_player = self.extra.players.first().unwrap();
-                let first_card = self.cards_played.get(first_player).unwrap();
-                let player_hand = self.extra.player_hands.get(player).unwrap();
-                card = player.play_card(self.extra.trump_card, Some(first_card), player_hand);
-                self.cards_played.insert(player, card);
+                let first_player = players.first().unwrap();
+                let first_card = cards_played.get(first_player).unwrap();
+                let player_hand = player_hands.get(player).unwrap().to_owned();
+                (card, new_hand) =
+                    player.play_card(self.extra.trump_card, Some(first_card), player_hand);
             }
+            cards_played.insert(player, card);
+            player_hands.insert(player, new_hand);
+        }
+
+        Trick {
+            extra: Scoring {
+                cards_played,
+                players,
+                trump_card,
+            },
         }
     }
+}
 
-    pub fn determine_winner(self) -> Trick<'a, Finished<'a>> {
+impl<'a> Trick<Scoring<'a>> {
+    pub fn determine_winner(self) -> Trick<Finished<'a>> {
+        let players = self.extra.players;
+        let cards_played = self.extra.cards_played;
         // Set up the trump and led suit
         let (_, trump_suit) = self.extra.trump_card.get_value();
-        let lead_player = self.extra.players.get(0).unwrap();
-        let (_, led_suit) = self.cards_played.get(lead_player).unwrap().get_value();
+        let lead_player = players.get(0).unwrap();
+        let (_, led_suit) = cards_played.get(lead_player).unwrap().get_value();
 
         // Assign point values to the trump and led suit for ease of comparison
         let tuples = [(trump_suit, 3), (led_suit, 2)];
@@ -92,11 +121,8 @@ impl<'a> Trick<'a, Playing<'a>> {
             };
         // Create the card mapping and sort them by suit then rank
         // where trump suit > led suit > others
-        let mut cards: Vec<(i32, i32, &'a Box<dyn Player>)> = self
-            .cards_played
-            .iter()
-            .map(create_sortable_tuples)
-            .collect();
+        let mut cards: Vec<(i32, i32, &'a Box<dyn Player>)> =
+            cards_played.iter().map(create_sortable_tuples).collect();
         let sort_tuples = |a: &(i32, i32, &'a Box<dyn Player>),
                            b: &(i32, i32, &'a Box<dyn Player>)| {
             let (a_suit, a_rank, _) = a;
@@ -112,10 +138,19 @@ impl<'a> Trick<'a, Playing<'a>> {
         let winner = cards.first().unwrap().2;
 
         Trick {
-            cards_played: self.cards_played,
             extra: Finished { winner },
         }
     }
 }
 
-impl<'a> Trick<'a, Finished<'a>> {}
+impl<'a> Trick<Finished<'a>> {
+    pub fn display_trick(&self) {
+        println!("{} is the winner!", self.extra.winner);
+    }
+}
+
+// impl<'a> fmt::Display for Trick<Finished<'a>> {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         write!(f, "{}", self.extra.winner)
+//     }
+// }
