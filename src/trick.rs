@@ -1,88 +1,121 @@
+//! A play of a Trick of Mormon Bridge, consisting of asking players for their plays.
+
+// Possible states:
+// Playing: ask each player for their Card
+// Finished: winner is determined based on played Cards
+
 use crate::card::Card;
+use crate::player::Player;
+use crate::suit::Suit;
 
 use std::collections::HashMap;
 
-#[derive(Debug)]
-pub struct Trick<'a> {
-    cards_played: Vec<(Card, &'a String)>,
-    trump_card: Card,
-    winner: Option<&'a String>,
+/// New Trick struct for using Generic Type Parameters.
+///
+/// Creating a new Trick will return a [Playing] state, which allows for asking
+/// players for a card and determining the winner.
+pub struct Trick<'a, T: TrickState> {
+    cards_played: HashMap<&'a Box<dyn Player>, Card>,
+    extra: T,
 }
 
-impl<'a> Trick<'a> {
-    pub fn new(cards_played: Vec<(Card, &'a String)>, trump_card: Card) -> Trick {
+/// State of the [Trick] while being played.
+///
+/// Asks [Player]s for their [Card], stores it, and determines the winner of the trick.
+pub struct Playing<'a> {
+    players: &'a Vec<Box<dyn Player>>,
+    trump_card: &'a Card,
+    player_hands: HashMap<&'a Box<dyn Player>, Vec<Card>>,
+}
+
+/// Final state of the [Trick].
+///
+/// Stores the winner of the [Trick] as a reference to a [Player] as received from the `cards_played` key.
+pub struct Finished<'a> {
+    winner: &'a Box<dyn Player>,
+}
+
+pub trait TrickState {}
+impl<'a> TrickState for Playing<'a> {}
+impl<'a> TrickState for Finished<'a> {}
+
+impl<'a, T: TrickState> Trick<'a, T> {
+    pub fn new(
+        trump_card: &'a Card,
+        players: &'a Vec<Box<dyn Player>>,
+        player_hands: HashMap<&'a Box<dyn Player>, Vec<Card>>,
+    ) -> Trick<'a, Playing<'a>> {
         Trick {
-            trump_card,
-            cards_played,
-            winner: None,
+            cards_played: HashMap::with_capacity(players.len()),
+            extra: Playing {
+                players,
+                trump_card,
+                player_hands,
+            },
         }
     }
+}
 
-    // Determines and print the winner of the trick
-    pub fn determine_winner(&mut self) {
-        // Get the trump suit and led suit
-        let (_, trump_suit) = self.trump_card.get_value();
-        let (_, led_suit) = self.cards_played.get(0).unwrap().0.get_value();
-        // Add the trump and led suit to the HashMap to map suits to integers for easier sorting
-        let mut points = HashMap::with_capacity(2);
-        points.insert(trump_suit, 3);
-        points.insert(led_suit, 2);
-        // Closure that maps the tuple of (Card, Players) to something more sort friendly
-        let create_sortable_tuples = |e: &(Card, &'a String)| -> (i32, i32, &'a String) {
-            let (rank, suit) = e.0.get_value();
-            let suit_value = points.get(suit).unwrap_or(&1);
-
-            (*suit_value, rank.get_numerical_rank(true), e.1)
-        };
-        // Create the card mapping and sort them by suit then rank
-        // where trump suit > led suit > others
-        let mut cards: Vec<(i32, i32, &String)> = self
-            .cards_played
-            .iter()
-            .map(create_sortable_tuples)
-            .collect();
-        cards.sort_by(|a, b| b.cmp(a));
-        // Set the winner and get the winning card from the cards played
-        self.winner = Some(cards.first().unwrap().2);
-        let winning_card: Result<&Card, ()> = match self
-            .cards_played
-            .iter()
-            .find(|e| e.1 == self.winner.unwrap_or(&String::from("")))
-        {
-            Some(e) => Ok(&e.0),
-            None => Err(()),
-        };
-        println!(
-            "Winner is {} with the {}",
-            self.winner.unwrap(),
-            winning_card.unwrap()
-        )
-    }
-
-    /// Display all Cards played in the Trick
-    pub fn display_trick(&self) {
-        println!("Trump Card: {}", self.trump_card);
-        for (i, play) in self.cards_played.iter().enumerate() {
-            match i {
-                0 => println!("{} led with the {}", &play.1, play.0),
-                _ => println!("{} played the {}", &play.1, play.0),
+impl<'a> Trick<'a, Playing<'a>> {
+    pub fn play_trick(&mut self) {
+        for player in self.extra.players.iter() {
+            let card: Card;
+            if self.cards_played.is_empty() {
+                let player_hand = self.extra.player_hands.get(player).unwrap();
+                card = player.play_card(self.extra.trump_card, None, player_hand);
+                self.cards_played.insert(player, card);
+            } else {
+                let first_player = self.extra.players.first().unwrap();
+                let first_card = self.cards_played.get(first_player).unwrap();
+                let player_hand = self.extra.player_hands.get(player).unwrap();
+                card = player.play_card(self.extra.trump_card, Some(first_card), player_hand);
+                self.cards_played.insert(player, card);
             }
         }
     }
 
-    pub fn show_results(&mut self) {
-        self.display_trick();
-        println!();
-        self.determine_winner();
+    pub fn determine_winner(self) -> Trick<'a, Finished<'a>> {
+        // Set up the trump and led suit
+        let (_, trump_suit) = self.extra.trump_card.get_value();
+        let lead_player = self.extra.players.get(0).unwrap();
+        let (_, led_suit) = self.cards_played.get(lead_player).unwrap().get_value();
+
+        // Assign point values to the trump and led suit for ease of comparison
+        let tuples = [(trump_suit, 3), (led_suit, 2)];
+        let points: HashMap<&Suit, i32> = tuples.into_iter().collect();
+        let create_sortable_tuples =
+            |e: (&&'a Box<dyn Player>, &Card)| -> (i32, i32, &'a Box<dyn Player>) {
+                let (rank, suit) = e.1.get_value();
+                let suit_value = points.get(suit).unwrap_or(&1);
+
+                (*suit_value, rank.get_numerical_rank(true), e.0)
+            };
+        // Create the card mapping and sort them by suit then rank
+        // where trump suit > led suit > others
+        let mut cards: Vec<(i32, i32, &'a Box<dyn Player>)> = self
+            .cards_played
+            .iter()
+            .map(create_sortable_tuples)
+            .collect();
+        let sort_tuples = |a: &(i32, i32, &'a Box<dyn Player>),
+                           b: &(i32, i32, &'a Box<dyn Player>)| {
+            let (a_suit, a_rank, _) = a;
+            let (b_suit, b_rank, _) = b;
+            let new_a = (a_suit, a_rank);
+            let new_b = (b_suit, b_rank);
+
+            new_b.cmp(&new_a)
+        };
+        cards.sort_by(sort_tuples);
+
+        // Set the winner and return the new state
+        let winner = cards.first().unwrap().2;
+
+        Trick {
+            cards_played: self.cards_played,
+            extra: Finished { winner },
+        }
     }
 }
 
-// pub fn get_sorting_value(&self, suit_mapping: Option<&HashMap<Suit, isize>>) -> (isize, isize) {
-//     (
-//         match suit_mapping {
-//             Some(map) => *self.suit.get_value(map),
-//             None => 1,
-//         },
-//         self.rank.get_value(true),
-//     )
-// }
+impl<'a> Trick<'a, Finished<'a>> {}
