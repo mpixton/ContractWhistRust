@@ -1,4 +1,9 @@
 //! Main struct of the crate and entrypoint for playing a game.
+//!
+//! # Todo
+//! [] Update documentation
+//! [] Call a series of hands automatically
+//! [] Add typestate pattern
 
 use std::io;
 
