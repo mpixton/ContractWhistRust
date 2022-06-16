@@ -34,7 +34,7 @@ impl Deck {
             .iter()
             .find(|e: &&Card| {
                 let (rank, suit) = e.get_value();
-                rank == &Rank::Ace && suit == &Suit::Hearts
+                rank == &Rank::Two && suit == &Suit::Hearts
             })
             .unwrap()
     }

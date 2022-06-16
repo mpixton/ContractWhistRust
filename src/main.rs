@@ -1,74 +1,129 @@
 #![allow(dead_code)]
 
-use std::io;
-
 mod card;
 mod deck;
 mod game;
+mod hand;
 mod player;
 mod rank;
 mod suit;
 mod trick;
 
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
+
+use hand::Start;
+
 use crate::card::Card;
 use crate::deck::{Deck, DeckType};
 use crate::game::MormonBridgeGame;
-use crate::player::HumanPlayer;
-use crate::trick::Trick;
+use crate::hand::NewHand;
+use crate::player::{HumanPlayer, Player};
+use crate::trick::{Playing, Trick};
+
+/// Type alias for Player Hand.
+type PlayerHands<'a> = HashMap<&'a Box<dyn Player>, Vec<Card>>;
 
 fn main() {
-    // let mut deck = Deck::new(DeckType::Full, true);
+    let game = MormonBridgeGame::new();
 
-    // let players: [String; 4] = [
-    //     String::from("Mickey Mouse"),
-    //     String::from("Minnie Mouse"),
-    //     String::from("Donald Duck"),
-    //     String::from("Daffy Duck"),
-    // ];
+    game.display_players();
 
-    // let mut cards_played: Vec<(Card, &String)> = Vec::with_capacity(4);
+    let hand = NewHand::<hand::Start>::new(&game.players, 2);
 
-    // for player in players.iter() {
-    //     cards_played.push((deck.deal(), player));
-    // }
-
-    // let mut trick = Trick::new(cards_played, deck.deal());
-
-    // trick.show_results();
-
-    println!("Welcome to Mormon Bridge!");
-
-    // io::stdin()
-    //     .read_line(&mut guess)
-    //     .expect("Failed to read line");
-
-    // let guess: u32 = match guess.trim().parse() {
-    //     Ok(num) => num,
-    //     Err(_) => continue,
-    // };
-
-    let num_players: usize;
-
-    loop {
-        let mut input = String::new();
-        println!("How many computer opponents would you like to play with?");
-        println!("Choose a number between 1 and 6.");
-        match io::stdin().read_line(&mut input) {
-            Ok(_) => {
-                match input.trim().parse() {
-                    Ok(num) => match num {
-                        1..=6 => {
-                            num_players = num;
-                            break;
-                        }
-                        _ => println!("{} is not between 1 and 6", num),
-                    },
-                    Err(_) => println!("The value you provided is not a number!"),
-                };
-            }
-            Err(_) => println!("Error attempting to read input."),
-        };
-    }
-
-    MormonBridgeGame::new(num_players);
+    hand.deal_players_in().get_player_bids().play_tricks();
 }
+
+pub const MAX_DISPLAY_WIDTH: usize = 35;
+
+// // let mut cards_played: Vec<(Card, &String)> = Vec::with_capacity(4);
+
+// // for player in players.iter() {
+// //     cards_played.push((deck.deal(), player));
+// // }
+
+// // let mut trick = Trick::new(cards_played, deck.deal());
+
+// // trick.show_results();
+
+// let mut deck = Deck::new().deck_type(DeckType::Full).default_shuffle();
+
+// let game = MormonBridgeGame::new();
+// game.display_players();
+
+// let mut hand = Hand::new(&game.players[0], deck.debug_trump(), game.players.len());
+
+// println!("{}", hand);
+
+// hand.deal_players_in(deck, &game.players, &MormonBridgeGame::TRICKS_PER_HAND[1]);
+
+// let trick: Trick<Playing> = Trick::new(&deck.debug_trump(), &game.players);
+
+// // let mut player_cards: HashMap<&Box<dyn Player>, Vec<Card>> = HashMap::with_capacity(7);
+
+// // for player in game.players.iter() {
+// //     player_cards.insert(player, Vec::with_capacity(2));
+// // }
+
+// // let double_players = game.players.iter().chain(game.players.iter());
+
+// // for (index, player) in double_players.enumerate() {
+// //     match player_cards.entry(player) {
+// //         Entry::Vacant(e) => {
+// //             let mut cards = Vec::with_capacity(2);
+// //             cards.push(deck.debug_deal(index));
+// //             e.insert(cards);
+// //         }
+// //         Entry::Occupied(mut e) => {
+// //             e.get_mut().push(deck.debug_deal(index));
+// //         }
+// //     };
+// // }
+
+// // println!("{:#?}", player_cards);
+
+// // let double_players = game.players.iter().chain(game.players.iter());
+
+// // for player in double_players {
+// //     println!("{}", player_cards.get_mut(player).unwrap().pop().unwrap());
+// // }
+
+// // let mut num_deal = 0;
+// // loop {
+// //     if num_deal == 14 {
+// //         break;
+// //     }
+// //     game.players[num_deal % 7].add_card_to_hand(deck.debug_deal(num_deal));
+// //     num_deal += 1;
+// // }
+
+// // for player in game.players.iter() {
+// //     println!("{}", player);
+// //     player.display_hand();
+// // }
+
+// // // vec to store all cards played
+// // // In practice, after each trick, the cards played will be used to create a trick obj
+// // let mut cards_played: Vec<(Card, &Box<dyn Player>)> = Vec::with_capacity(14);
+
+// // // Simulate playing cards in a trick
+// // for (index, player) in game.players.iter_mut().enumerate() {
+// //     // If the first card of the trick, no led card
+// //     if index % 7 == 0 {
+// //         cards_played.push((player.play_card(&hand.trump_card, None), player))
+// //     } else {
+// //         let led_card = cards_played.get(index);
+// //         cards_played.push((player.play_card(&hand.trump_card, led_card), player))
+// //     }
+// // }
+
+// // for (index, player) in game.players.iter().enumerate() {
+// //     println!("{}", player);
+// //     player.display_hand();
+// //     // if index == 0 || index == 7 {
+// //     //     player.play_card(&hand.trump_card, None).unwrap();
+// //     // } else {
+// //     //     if (index < 6)
+// //     //     player.play_card(&hand.trump_card, player.).unwrap();
+// //     // }
+// // }

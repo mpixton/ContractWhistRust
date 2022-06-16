@@ -1,9 +1,13 @@
+//! Main struct of the crate and entrypoint for playing a game.
+
 use std::io;
 
 use crate::player::{AIPlayer, HumanPlayer, Player};
 use crate::MAX_DISPLAY_WIDTH;
 
+/// Struct of the Game.
 pub struct MormonBridgeGame {
+    /// Checking if this is possible.
     pub players: Vec<Box<dyn Player>>,
 }
 
@@ -93,5 +97,5 @@ impl MormonBridgeGame {
         "Pluto Dog",
     ];
 
-    const TRICKS_PER_HAND: [i8; 13] = [1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1];
+    pub const TRICKS_PER_HAND: [usize; 13] = [1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1];
 }
