@@ -1,30 +1,46 @@
 //! A play of a Trick of Mormon Bridge, consisting of asking players for their plays.
-
-// Possible states:
-// Playing: ask each player for their Card
-// Finished: winner is determined based on played Cards
+//!
+//! The Trick progresses through four states. The first is the Start state, where player
+//! hands, the player order, and the trump card are passed into the struct. This state
+//! is used to create a Playing state. The Playing state is used to ask each player, in
+//! order, for their plays. Once all plays are collected, the trick enters the Scoring
+//! state to determine the winner. After scoring, the trick comes to rest in the
+//! Finished state, which is used to get the trick winner.
+//!
+//! [Start]: Used only to create a [Trick]. <br>
+//! [Playing]: Asks each player in order for their [Card]s. <br>
+//! [Scoring]: Determines the winner of the [Trick] based on the Trump and Led suit. <br>
+//! [Finished]: Stores the winner of the [Trick]. <br>
 
 use std::collections::HashMap;
-use std::fmt;
 
 use crate::card::Card;
 use crate::player::Player;
 use crate::suit::Suit;
 use crate::PlayerHands;
 
-/// New Trick struct for using Generic Type Parameters.
-///
-/// Creating a new Trick will return a [Playing] state, which allows for asking
-/// players for a card and determining the winner.
+/// Trick struct for using Generic Type Parameters.
 pub struct Trick<T: TrickState> {
     extra: T,
 }
 
+/// Used only to create the [Trick].
+///
+/// Creates a new [Trick] and returns the [Playing] state.
 pub struct Start {}
 
 /// State of the [Trick] while being played.
 ///
-/// Asks [Player]s for their [Card], stores it, and determines the winner of the trick.
+/// Asks [Player]s for their [Card] and moves the [Trick] to the [Scoring] state.
+///
+/// The `'a`, `'b`, and `'c` lifetimes are used to help the compiler with lifetimes.
+/// Lifetime `'a` is the longest, and is used for the reference to a [Player], which
+/// are instantiated when the [crate::game::MormonBridgeGame] is created. Lifetime `'b`
+/// is used for a reference to a trump card, which is owned by the [crate::hand::Hand]
+/// that is playing the [Trick]. Lifetime `'c'` is used to denote the lifetime of the
+/// `player_hands` borrow which is also owned by the [crate::hand::Hand] playing the
+/// [Trick]. `player_hands` is borrowed mutably to allow for the hand to change between
+/// plays of the [Trick].  
 pub struct Playing<'a, 'b, 'c>
 where
     'a: 'b,
@@ -36,6 +52,11 @@ where
     player_hands: &'c mut PlayerHands<'a>,
 }
 
+/// State of the [Trick] while determing the winner.
+///
+/// Determines the winner of the [Trick] based on the Trump and Led suit.
+///
+/// See [Playing] for a discussion on the lifetimes.
 pub struct Scoring<'a, 'b, 'c>
 where
     'a: 'b,
@@ -61,6 +82,7 @@ impl<'a, 'b, 'c> TrickState for Scoring<'a, 'b, 'c> {}
 impl<'a> TrickState for Finished<'a> {}
 
 impl<'a, 'b, 'c> Trick<Start> {
+    /// Creates a new [Trick] and returns the [Playing] state.
     pub fn new(
         trump_card: &'b Card,
         players: &'a Vec<Box<dyn Player>>,
@@ -78,8 +100,9 @@ impl<'a, 'b, 'c> Trick<Start> {
 }
 
 impl<'a, 'b, 'c> Trick<Playing<'a, 'b, 'c>> {
+    /// Asks [Player]s for their [Card]s and returns the [Scoring] state.
     pub fn play_trick(self) -> Trick<Scoring<'a, 'b, 'c>> {
-        let mut player_hands = self.extra.player_hands;
+        let player_hands = self.extra.player_hands;
         let players = self.extra.players;
         let trump_card: &'b Card = self.extra.trump_card;
 
@@ -118,10 +141,10 @@ impl<'a, 'b, 'c> Trick<Playing<'a, 'b, 'c>> {
 }
 
 impl<'a, 'b, 'c> Trick<Scoring<'a, 'b, 'c>> {
+    /// Determines the winner and returns the [Finished] state.
     pub fn determine_winner(self) -> Trick<Finished<'a>> {
         let players = self.extra.players;
         let cards_played = self.extra.cards_played;
-        let player_hands = self.extra.player_hands;
 
         // Set up the trump and led suit
         let (_, trump_suit) = self.extra.trump_card.get_value();
@@ -163,11 +186,7 @@ impl<'a, 'b, 'c> Trick<Scoring<'a, 'b, 'c>> {
 }
 
 impl<'a> Trick<Finished<'a>> {
-    // pub fn get_final_state(&self) -> (&'a Box<dyn Player>, PlayerHands<'a>) {
-    //     let player_hands = self.extra.player_hands;
-    //     (self.extra.winner, *player_hands)
-    // }
-
+    /// Returns the winner of the [Trick].
     pub fn get_winner(&self) -> &'a Box<dyn Player> {
         self.extra.winner
     }
@@ -176,9 +195,3 @@ impl<'a> Trick<Finished<'a>> {
         println!("{} is the winner!", self.extra.winner);
     }
 }
-
-// impl<'a> fmt::Display for Trick<Finished<'a>> {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(f, "{}", self.extra.winner)
-//     }
-// }
