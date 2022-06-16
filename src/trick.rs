@@ -20,20 +20,31 @@ pub struct Trick<T: TrickState> {
     extra: T,
 }
 
+pub struct Start {}
+
 /// State of the [Trick] while being played.
 ///
 /// Asks [Player]s for their [Card], stores it, and determines the winner of the trick.
-pub struct Playing<'a> {
+pub struct Playing<'a, 'b, 'c>
+where
+    'a: 'b,
+    'b: 'c,
+{
     cards_played: HashMap<&'a Box<dyn Player>, Card>,
     players: &'a Vec<Box<dyn Player>>,
-    trump_card: &'a Card,
-    player_hands: &'a mut PlayerHands<'a>,
+    trump_card: &'b Card,
+    player_hands: &'c mut PlayerHands<'a>,
 }
 
-pub struct Scoring<'a> {
+pub struct Scoring<'a, 'b, 'c>
+where
+    'a: 'b,
+    'b: 'c,
+{
     cards_played: HashMap<&'a Box<dyn Player>, Card>,
-    trump_card: &'a Card,
+    trump_card: &'b Card,
     players: &'a Vec<Box<dyn Player>>,
+    player_hands: &'c mut PlayerHands<'a>,
 }
 
 /// Final state of the [Trick].
@@ -44,16 +55,17 @@ pub struct Finished<'a> {
 }
 
 pub trait TrickState {}
-impl<'a> TrickState for Playing<'a> {}
-impl<'a> TrickState for Scoring<'a> {}
+impl<'a> TrickState for Start {}
+impl<'a, 'b, 'c> TrickState for Playing<'a, 'b, 'c> {}
+impl<'a, 'b, 'c> TrickState for Scoring<'a, 'b, 'c> {}
 impl<'a> TrickState for Finished<'a> {}
 
-impl<'a, T: TrickState> Trick<T> {
+impl<'a, 'b, 'c> Trick<Start> {
     pub fn new(
-        trump_card: &'a Card,
+        trump_card: &'b Card,
         players: &'a Vec<Box<dyn Player>>,
-        player_hands: &'a mut PlayerHands<'a>,
-    ) -> Trick<Playing<'a>> {
+        player_hands: &'c mut PlayerHands<'a>,
+    ) -> Trick<Playing<'a, 'b, 'c>> {
         Trick {
             extra: Playing {
                 players,
@@ -65,11 +77,11 @@ impl<'a, T: TrickState> Trick<T> {
     }
 }
 
-impl<'a> Trick<Playing<'a>> {
-    pub fn play_trick(self) -> Trick<Scoring<'a>> {
+impl<'a, 'b, 'c> Trick<Playing<'a, 'b, 'c>> {
+    pub fn play_trick(self) -> Trick<Scoring<'a, 'b, 'c>> {
         let mut player_hands = self.extra.player_hands;
         let players = self.extra.players;
-        let trump_card = self.extra.trump_card;
+        let trump_card: &'b Card = self.extra.trump_card;
 
         let mut cards_played = HashMap::with_capacity(players.len());
 
@@ -90,20 +102,27 @@ impl<'a> Trick<Playing<'a>> {
             player_hands.insert(player, new_hand);
         }
 
+        for (player, card) in cards_played.iter() {
+            println!("{} played the {}", player, card);
+        }
+
         Trick {
             extra: Scoring {
                 cards_played,
                 players,
                 trump_card,
+                player_hands,
             },
         }
     }
 }
 
-impl<'a> Trick<Scoring<'a>> {
+impl<'a, 'b, 'c> Trick<Scoring<'a, 'b, 'c>> {
     pub fn determine_winner(self) -> Trick<Finished<'a>> {
         let players = self.extra.players;
         let cards_played = self.extra.cards_played;
+        let player_hands = self.extra.player_hands;
+
         // Set up the trump and led suit
         let (_, trump_suit) = self.extra.trump_card.get_value();
         let lead_player = players.get(0).unwrap();
@@ -144,6 +163,15 @@ impl<'a> Trick<Scoring<'a>> {
 }
 
 impl<'a> Trick<Finished<'a>> {
+    // pub fn get_final_state(&self) -> (&'a Box<dyn Player>, PlayerHands<'a>) {
+    //     let player_hands = self.extra.player_hands;
+    //     (self.extra.winner, *player_hands)
+    // }
+
+    pub fn get_winner(&self) -> &'a Box<dyn Player> {
+        self.extra.winner
+    }
+
     pub fn display_trick(&self) {
         println!("{} is the winner!", self.extra.winner);
     }
