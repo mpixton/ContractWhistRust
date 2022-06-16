@@ -70,7 +70,7 @@ impl Player for HumanPlayer {
                 Ok(_) => {
                     match input.trim().parse::<usize>() {
                         Ok(num) => {
-                            if 0 < num && num < max_bids {
+                            if 0 < num && num <= max_bids {
                                 bid = num;
                                 break;
                             } else {
