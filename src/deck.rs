@@ -80,7 +80,6 @@ impl DeckBuilder {
         let mut shuffling = || self.cards.shuffle(&mut thread_rng());
         {
             for i in 0..7 {
-                println!("Shuffling... {}", { i });
                 shuffling();
             }
         }
