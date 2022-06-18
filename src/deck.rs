@@ -4,12 +4,13 @@ use crate::suit::Suit;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 
+#[derive(Debug)]
 pub struct Deck {
-    pub cards: Vec<Card>,
+    cards: Vec<Card>,
 }
 
 impl Deck {
-    #[warn(clippy::new_ret_no_self)]
+    #[allow(clippy::new_ret_no_self)]
     pub fn new() -> DeckBuilder {
         DeckBuilder { cards: Vec::new() }
     }
@@ -76,7 +77,7 @@ impl DeckBuilder {
         DeckBuilder { cards }
     }
 
-    pub fn default_shuffle(mut self) -> Deck {
+    pub fn default_shuffle(mut self) -> DeckBuilder {
         let mut shuffling = || self.cards.shuffle(&mut thread_rng());
         {
             for i in 0..7 {
@@ -84,22 +85,27 @@ impl DeckBuilder {
             }
         }
 
-        Deck { cards: self.cards }
+        DeckBuilder { cards: self.cards }
     }
 
-    pub fn shuffle(mut self, shuffles: Option<i8>) -> Deck {
+    pub fn shuffle(mut self, shuffles: Option<i8>) -> DeckBuilder {
         let mut shuffling = || self.cards.shuffle(&mut thread_rng());
 
         match shuffles {
             Some(iters) if iters > 1 && iters < 10 => {
                 for i in 1..=iters {
-                    println!("Shuffling... {}", { i });
                     shuffling();
                 }
             }
             _ => shuffling(),
         }
 
-        Deck { cards: self.cards }
+        DeckBuilder { cards: self.cards }
+    }
+
+    pub fn end(self) -> Deck {
+        let cards = self.cards;
+
+        Deck { cards }
     }
 }
