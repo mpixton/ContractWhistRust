@@ -47,7 +47,7 @@ where
     'b: 'c,
 {
     cards_played: HashMap<&'a Box<dyn Player>, Card>,
-    players: &'a Vec<Box<dyn Player>>,
+    players: Vec<&'a Box<dyn Player>>,
     trump_card: &'b Card,
     player_hands: &'c mut PlayerHands<'a>,
 }
@@ -64,7 +64,7 @@ where
 {
     cards_played: HashMap<&'a Box<dyn Player>, Card>,
     trump_card: &'b Card,
-    players: &'a Vec<Box<dyn Player>>,
+    players: Vec<&'a Box<dyn Player>>,
     player_hands: &'c mut PlayerHands<'a>,
 }
 
@@ -85,15 +85,15 @@ impl<'a, 'b, 'c> Trick<Start> {
     /// Creates a new [Trick] and returns the [Playing] state.
     pub fn new(
         trump_card: &'b Card,
-        players: &'a Vec<Box<dyn Player>>,
+        players: Vec<&'a Box<dyn Player>>,
         player_hands: &'c mut PlayerHands<'a>,
     ) -> Trick<Playing<'a, 'b, 'c>> {
         Trick {
             extra: Playing {
-                players,
                 trump_card,
                 player_hands,
                 cards_played: HashMap::with_capacity(players.len()),
+                players,
             },
         }
     }
@@ -106,13 +106,14 @@ impl<'a, 'b, 'c> Trick<Playing<'a, 'b, 'c>> {
         let players = self.extra.players;
         let trump_card: &'b Card = self.extra.trump_card;
 
-        let mut cards_played = HashMap::with_capacity(players.len());
+        let mut cards_played: HashMap<&Box<dyn Player>, Card> =
+            HashMap::with_capacity(players.len());
 
-        for player in players.iter() {
+        for player in &players {
             let card: Card;
             let new_hand: Vec<Card>;
             if cards_played.is_empty() {
-                let player_hand = player_hands.get(player).unwrap().to_owned();
+                let player_hand = player_hands.get(*player).unwrap().to_owned();
                 (card, new_hand) = player.play_card(self.extra.trump_card, None, player_hand);
             } else {
                 let first_player = players.first().unwrap();
