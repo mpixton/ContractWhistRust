@@ -1,12 +1,13 @@
 use std::{fmt, hash, io};
 
-use crate::card::Card;
+use crate::{card::Card, MAX_DISPLAY_WIDTH};
 
 pub trait Player {
     fn get_name(&self) -> &String;
     fn play_card(&self, trump: &Card, led: Option<&Card>, cards: Vec<Card>) -> (Card, Vec<Card>);
-    fn display_hand(&self, cards: &Vec<Card>);
-    fn get_player_bid(&self, trump: &Card, tricks_this_bid: &usize, cards: &Vec<Card>) -> usize;
+    fn display_hand(&self, cards: &[Card]);
+    fn get_player_bid(&self, trump: &Card, tricks_this_bid: &usize, cards: &[Card]) -> isize;
+    fn clone_dyn(&self) -> Box<dyn Player>;
 }
 
 impl fmt::Display for dyn Player {
@@ -35,7 +36,13 @@ impl PartialEq for Box<dyn Player> {
 
 impl Eq for Box<dyn Player> {}
 
-#[derive(Debug)]
+impl Clone for Box<dyn Player> {
+    fn clone(&self) -> Box<dyn Player> {
+        self.clone_dyn()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct HumanPlayer {
     name: String,
 }
@@ -47,30 +54,40 @@ impl HumanPlayer {
 }
 
 impl Player for HumanPlayer {
+    fn clone_dyn(&self) -> Box<dyn Player> {
+        Box::new(self.clone())
+    }
+
     fn get_name(&self) -> &String {
         &self.name
     }
 
-    fn display_hand(&self, cards: &Vec<Card>) {
-        for card in cards {
-            println!("{}", card)
+    fn display_hand(&self, cards: &[Card]) {
+        println!("Index Card");
+        println!("--------------------");
+        for (index, card) in cards.iter().enumerate() {
+            println!("{:^5}{:^2$}", index, card, MAX_DISPLAY_WIDTH - 6);
         }
     }
 
-    fn get_player_bid(&self, trump: &Card, tricks_this_hand: &usize, cards: &Vec<Card>) -> usize {
-        let bid: usize;
+    fn get_player_bid(&self, trump: &Card, tricks_this_hand: &usize, cards: &[Card]) -> isize {
+        let bid: isize;
         let max_bids: usize = *tricks_this_hand;
+
+        println!();
 
         loop {
             let mut input = String::new();
             println!("Trump this hand is: {}", &trump);
+            println!();
             self.display_hand(cards);
             println!("What do you bid?");
             match io::stdin().read_line(&mut input) {
                 Ok(_) => {
                     match input.trim().parse::<usize>() {
                         Ok(num) => {
-                            if 0 < num && num <= max_bids {
+                            if num <= max_bids {
+                                let num: isize = num.try_into().unwrap();
                                 bid = num;
                                 break;
                             } else {
@@ -96,6 +113,10 @@ impl Player for HumanPlayer {
         println!("Here is your hand.");
         self.display_hand(&cards);
         println!("Trump is: {}", &trump);
+        if let Some(card) = led {
+            println!("{} was led.", &card);
+        }
+        println!();
         println!("What card would you like to play?");
 
         loop {
@@ -131,6 +152,7 @@ impl Player for HumanPlayer {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct AIPlayer {
     name: String,
 }
@@ -142,22 +164,28 @@ impl AIPlayer {
 }
 
 impl Player for AIPlayer {
+    fn clone_dyn(&self) -> Box<dyn Player> {
+        Box::new(self.clone())
+    }
+
     fn get_name(&self) -> &String {
         &self.name
     }
 
-    fn display_hand(&self, cards: &Vec<Card>) {
+    fn display_hand(&self, cards: &[Card]) {
         for card in cards {
             println!("{}", card)
         }
     }
 
     #[allow(unused_variables)]
-    fn get_player_bid(&self, trump: &Card, tricks_this_bid: &usize, cards: &Vec<Card>) -> usize {
+    fn get_player_bid(&self, trump: &Card, tricks_this_bid: &usize, cards: &[Card]) -> isize {
         cards
             .iter()
             .filter(|e| e.get_value().1 == trump.get_value().1)
             .count()
+            .try_into()
+            .unwrap()
     }
 
     /// Logic for playing a Card
@@ -193,7 +221,7 @@ impl Player for AIPlayer {
                 let mut led_suit_cards: Vec<i32> =
                     cards.iter().filter(is_in_led).map(rank_cards).collect();
                 // If player has a led suit card, play the lowest possible
-                if led_suit_cards.iter().count() > 0 {
+                if !led_suit_cards.is_empty() {
                     led_suit_cards.sort_by(|a, b| b.cmp(a));
                     let card_to_play = cards
                         .iter()
@@ -210,7 +238,7 @@ impl Player for AIPlayer {
                     let is_in_trump = |e: &&Card| e.get_value().1 == trump.get_value().1;
                     let mut trump_suit_cards: Vec<i32> =
                         cards.iter().filter(is_in_trump).map(rank_cards).collect();
-                    if trump_suit_cards.iter().count() > 0 {
+                    if !trump_suit_cards.is_empty() {
                         trump_suit_cards.sort_by(|a, b| b.cmp(a));
                         let card_to_play = cards
                             .iter()
@@ -242,7 +270,7 @@ impl Player for AIPlayer {
                 let is_in_trump = |e: &&Card| e.get_value().1 == trump.get_value().1;
                 let mut trump_suit_cards: Vec<i32> =
                     cards.iter().filter(is_in_trump).map(rank_cards).collect();
-                if trump_suit_cards.iter().count() > 0 {
+                if !trump_suit_cards.is_empty() {
                     trump_suit_cards.sort_by(|a, b| b.cmp(a));
                     let card_to_play = cards
                         .iter()
