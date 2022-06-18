@@ -257,5 +257,59 @@ impl<'a> Hand<'a, Playing<'a>> {
     }
 }
 
-impl<'a> Hand<'a, Scoring<'a>> {}
-impl<'a> Hand<'a, Finished<'a>> {}
+impl<'a> Hand<'a, Scoring<'a>> {
+    /// Score the Hand and return a Finished Hand.
+    pub fn score_hand(self) -> Hand<'a, Finished<'a>> {
+        let players = self.players;
+        let tricks_won = self.extra.tricks_won;
+        let bids = self.extra.bids;
+
+        let mut points: HashMap<&Box<dyn Player>, isize> = HashMap::with_capacity(players.len());
+
+        // println!();
+        // println!("{:-^1$}", "Player Bids", MAX_DISPLAY_WIDTH);
+
+        // for (player, bid) in bids.iter() {
+        //     println!("- {:>2$} {}", player, bid, 20);
+        // }
+
+        // println!("{:#?}", &bids);
+        // println!("{:#?}", &tricks_won);
+
+        for player in players.iter() {
+            let player_bid: isize = *bids.get(player).unwrap();
+            let player_tricks_won: isize = *tricks_won.get(player).unwrap_or(&0);
+
+            let sandbag: isize = player_bid.abs_diff(player_tricks_won).try_into().unwrap();
+
+            match sandbag {
+                0 => {
+                    points.insert(player, 10 + player_bid);
+                }
+                num => {
+                    points.insert(player, -(10 + sandbag));
+                }
+            };
+        }
+
+        Hand {
+            players,
+            extra: Finished { points },
+        }
+    }
+}
+
+impl<'a> Hand<'a, Finished<'a>> {
+    /// Get the player scores for the Hand.
+    pub fn get_scores(&self) -> &HashMap<&'a Box<dyn Player>, isize> {
+        &self.extra.points
+    }
+
+    /// Display the final points for the Hand.
+    pub fn display_points(&self) {
+        println!();
+        for (player, points) in self.extra.points.iter() {
+            println!("{} scored {} points this hand", player, points);
+        }
+    }
+}
