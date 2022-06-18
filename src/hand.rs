@@ -42,18 +42,16 @@ pub struct Hand<'a, T: HandState> {
 /// Used to only to create a new [Hand].
 ///
 /// Creates a new [Hand] and returns the [Dealing] state.
-pub struct Start {
-    deck: Deck,
-    num_tricks: usize,
-}
+pub struct Start {}
 
 /// State of the [Hand] while dealing players in.
 ///
 /// Provides a hand of cards for each player, sets the trump, and sets the hand to the
 /// [Bidding] state.
-pub struct Dealing {
+pub struct Dealing<'a> {
     deck: Deck,
     num_tricks: usize,
+    dealer: &'a Box<dyn Player>,
 }
 
 /// State of the [Hand] while gathering bids.
@@ -63,6 +61,8 @@ pub struct Bidding<'a> {
     trump: Card,
     player_hands: HashMap<&'a Box<dyn Player>, Vec<Card>>,
     num_tricks: usize,
+    dealer: &'a Box<dyn Player>,
+    bid_order: Vec<Box<dyn Player>>,
 }
 
 /// State of the [Hand] while playing a series of [Trick]s.
@@ -70,52 +70,62 @@ pub struct Bidding<'a> {
 /// Plays a number of [Trick]s equal to the `num-trick` parameter passed when creating
 /// the [Hand].
 pub struct Playing<'a> {
-    bids: HashMap<&'a Box<dyn Player>, usize>,
+    bids: HashMap<&'a Box<dyn Player>, isize>,
     trump: Card,
     num_tricks: usize,
     player_hands: HashMap<&'a Box<dyn Player>, Vec<Card>>,
+    initial_player_order: Vec<Box<dyn Player>>,
 }
 
 /// State of the [Hand] while scoring the players.
 ///
 /// Checks each player's bid vs actual tricks taken and determines points for the [Hand].
 pub struct Scoring<'a> {
-    bids: HashMap<&'a Box<dyn Player>, usize>,
-    tricks_won: HashMap<&'a Box<dyn Player>, usize>,
+    bids: HashMap<&'a Box<dyn Player>, isize>,
+    tricks_won: HashMap<&'a Box<dyn Player>, isize>,
 }
 
 /// Final state of the [Hand] containing total points scored by player.
 pub struct Finished<'a> {
-    points: HashMap<&'a Box<dyn Player>, usize>,
+    points: HashMap<&'a Box<dyn Player>, isize>,
 }
 
 /// Used to constraint the structs that may be used with [Hand].
 pub trait HandState {}
 impl HandState for Start {}
-impl HandState for Dealing {}
+impl<'a> HandState for Dealing<'a> {}
 impl<'a> HandState for Bidding<'a> {}
 impl<'a> HandState for Playing<'a> {}
 impl<'a> HandState for Scoring<'a> {}
 impl<'a> HandState for Finished<'a> {}
 
 impl<'a> Hand<'a, Start> {
-    /// Creates the new [Hand] and returns the [Bidding] state.
-    pub fn new(players: &'a Vec<Box<dyn Player>>, num_tricks: usize) -> Hand<'a, Start> {
+    /// Creates the new [Hand] and returns the [Dealing] state.
+    pub fn new(
+        players: &'a Vec<Box<dyn Player>>,
+        num_tricks: usize,
+        dealer: &'a Box<dyn Player>,
+    ) -> Hand<'a, Dealing<'a>> {
         let deck = Deck::new().deck_type(DeckType::Full).shuffle(Some(7));
 
         Hand {
             players,
-            extra: Start { deck, num_tricks },
+            extra: Dealing {
+                deck,
+                num_tricks,
+                dealer,
+            },
         }
     }
 }
 
-impl<'a> Hand<'a, Dealing> {
-    /// Generates a hand of cards for each player, set the trump, and returns the Bidding state.
+impl<'a> Hand<'a, Dealing<'a>> {
+    /// Generates a hand of cards for each player, set the trump, and returns the [Bidding] state.
     pub fn deal_players_in(self) -> Hand<'a, Bidding<'a>> {
         let players = self.players;
         let num_tricks = self.extra.num_tricks;
         let mut deck = self.extra.deck;
+        let dealer = self.extra.dealer;
 
         let trump = deck.deal();
         let mut player_hands: PlayerHands = HashMap::with_capacity(players.len());
@@ -137,12 +147,23 @@ impl<'a> Hand<'a, Dealing> {
             index += 1;
         }
 
+        let total_players = players.len();
+        let dealer_position = players.iter().position(|e| e == dealer).unwrap();
+        let mut bid_order: Vec<Box<dyn Player>> = Vec::with_capacity(total_players);
+        let index = dealer_position.clone();
+
+        while index < total_players + dealer_position {
+            bid_order.push(players[index % total_players].clone())
+        }
+
         Hand {
             players,
             extra: Bidding {
                 player_hands,
                 trump,
                 num_tricks,
+                bid_order,
+                dealer,
             },
         }
     }
@@ -155,10 +176,12 @@ impl<'a> Hand<'a, Bidding<'a>> {
         let trump = self.extra.trump;
         let players = self.players;
         let num_tricks = self.extra.num_tricks;
+        let bid_order = self.extra.bid_order;
+        let dealer = self.extra.dealer;
 
-        let mut bids: HashMap<&'a Box<dyn Player>, usize> = HashMap::with_capacity(players.len());
+        let mut bids: HashMap<&'a Box<dyn Player>, isize> = HashMap::with_capacity(players.len());
 
-        for player in players.iter() {
+        for player in bid_order.iter() {
             let cards = player_hands.get(player).unwrap();
             let bid = player.get_player_bid(&trump, &num_tricks, cards);
             bids.insert(player, bid);
@@ -173,6 +196,15 @@ impl<'a> Hand<'a, Bidding<'a>> {
 
         println!();
 
+        let total_players = players.len();
+        let dealer_position = players.iter().position(|e| e == dealer).unwrap();
+        let mut initial_player_order: Vec<Box<dyn Player>> = Vec::with_capacity(total_players);
+        let index = dealer_position.clone();
+
+        while index < total_players + dealer_position {
+            initial_player_order.push(players[index % total_players].clone())
+        }
+
         Hand {
             players,
             extra: Playing {
@@ -180,6 +212,7 @@ impl<'a> Hand<'a, Bidding<'a>> {
                 trump,
                 player_hands,
                 num_tricks,
+                initial_player_order,
             },
         }
     }
@@ -194,7 +227,7 @@ impl<'a> Hand<'a, Playing<'a>> {
         let bids = self.extra.bids;
         let num_tricks = self.extra.num_tricks;
 
-        let mut tricks_won: HashMap<&Box<dyn Player>, usize> =
+        let mut tricks_won: HashMap<&Box<dyn Player>, isize> =
             HashMap::with_capacity(players.len());
 
         let mut index = 0;
