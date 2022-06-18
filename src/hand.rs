@@ -34,6 +34,7 @@ use crate::{PlayerHands, MAX_DISPLAY_WIDTH};
 /// Base struct of the Hand, used with the HandState trait structs.
 ///
 /// The Hand progresses through 5 states which determine the data stored in the hand.
+#[derive(Debug)]
 pub struct Hand<'a, T: HandState> {
     players: &'a Vec<Box<dyn Player>>,
     extra: T,
@@ -42,12 +43,14 @@ pub struct Hand<'a, T: HandState> {
 /// Used to only to create a new [Hand].
 ///
 /// Creates a new [Hand] and returns the [Dealing] state.
+#[derive(Debug)]
 pub struct Start {}
 
 /// State of the [Hand] while dealing players in.
 ///
 /// Provides a hand of cards for each player, sets the trump, and sets the hand to the
 /// [Bidding] state.
+#[derive(Debug)]
 pub struct Dealing<'a> {
     deck: Deck,
     num_tricks: usize,
@@ -57,35 +60,39 @@ pub struct Dealing<'a> {
 /// State of the [Hand] while gathering bids.
 ///
 /// Asks [Player]s for their bids this [Hand] and stores them.
+#[derive(Debug)]
 pub struct Bidding<'a> {
     trump: Card,
     player_hands: HashMap<&'a Box<dyn Player>, Vec<Card>>,
     num_tricks: usize,
     dealer: &'a Box<dyn Player>,
-    bid_order: Vec<Box<dyn Player>>,
+    bid_order: Vec<&'a Box<dyn Player>>,
 }
 
 /// State of the [Hand] while playing a series of [Trick]s.
 ///
 /// Plays a number of [Trick]s equal to the `num-trick` parameter passed when creating
 /// the [Hand].
+#[derive(Debug)]
 pub struct Playing<'a> {
     bids: HashMap<&'a Box<dyn Player>, isize>,
     trump: Card,
     num_tricks: usize,
     player_hands: HashMap<&'a Box<dyn Player>, Vec<Card>>,
-    initial_player_order: Vec<Box<dyn Player>>,
+    initial_player_order: Vec<&'a Box<dyn Player>>,
 }
 
 /// State of the [Hand] while scoring the players.
 ///
 /// Checks each player's bid vs actual tricks taken and determines points for the [Hand].
+#[derive(Debug)]
 pub struct Scoring<'a> {
     bids: HashMap<&'a Box<dyn Player>, isize>,
     tricks_won: HashMap<&'a Box<dyn Player>, isize>,
 }
 
 /// Final state of the [Hand] containing total points scored by player.
+#[derive(Debug)]
 pub struct Finished<'a> {
     points: HashMap<&'a Box<dyn Player>, isize>,
 }
@@ -106,7 +113,8 @@ impl<'a> Hand<'a, Start> {
         num_tricks: usize,
         dealer: &'a Box<dyn Player>,
     ) -> Hand<'a, Dealing<'a>> {
-        let deck = Deck::new().deck_type(DeckType::Full).shuffle(Some(7));
+        println!("Starting a deck");
+        let deck = Deck::new().deck_type(DeckType::Full).shuffle(Some(7)).end();
 
         Hand {
             players,
@@ -131,6 +139,8 @@ impl<'a> Hand<'a, Dealing<'a>> {
         let mut player_hands: PlayerHands = HashMap::with_capacity(players.len());
         let mut index: usize = 0;
 
+        println!("{} is dealing...", &dealer);
+
         while index < num_tricks {
             for (p_index, player) in players.iter().enumerate() {
                 match player_hands.entry(player) {
@@ -149,11 +159,12 @@ impl<'a> Hand<'a, Dealing<'a>> {
 
         let total_players = players.len();
         let dealer_position = players.iter().position(|e| e == dealer).unwrap();
-        let mut bid_order: Vec<Box<dyn Player>> = Vec::with_capacity(total_players);
-        let index = dealer_position.clone();
+        let mut bid_order: Vec<&Box<dyn Player>> = Vec::with_capacity(total_players);
+        let mut index = dealer_position;
 
         while index < total_players + dealer_position {
-            bid_order.push(players[index % total_players].clone())
+            bid_order.push(&players[index % total_players]);
+            index += 1;
         }
 
         Hand {
@@ -198,11 +209,12 @@ impl<'a> Hand<'a, Bidding<'a>> {
 
         let total_players = players.len();
         let dealer_position = players.iter().position(|e| e == dealer).unwrap();
-        let mut initial_player_order: Vec<Box<dyn Player>> = Vec::with_capacity(total_players);
-        let index = dealer_position.clone();
+        let mut initial_player_order: Vec<&Box<dyn Player>> = Vec::with_capacity(total_players);
+        let mut index = dealer_position;
 
         while index < total_players + dealer_position {
-            initial_player_order.push(players[index % total_players].clone())
+            initial_player_order.push(&players[index % total_players]);
+            index += 1;
         }
 
         Hand {
@@ -226,6 +238,21 @@ impl<'a> Hand<'a, Playing<'a>> {
         let players = self.players;
         let bids = self.extra.bids;
         let num_tricks = self.extra.num_tricks;
+        let mut player_order: Vec<&Box<dyn Player>> = self.extra.initial_player_order;
+
+        let set_new_player_order = |winner| {
+            let total_players = players.len();
+            let winner_position = players.iter().position(|e| e == winner).unwrap();
+            let mut new_player_order: Vec<&Box<dyn Player>> = Vec::with_capacity(total_players);
+            let mut index = winner_position;
+
+            while index < total_players + winner_position {
+                new_player_order.push(&players[index % total_players]);
+                index += 1;
+            }
+
+            new_player_order
+        };
 
         let mut tricks_won: HashMap<&Box<dyn Player>, isize> =
             HashMap::with_capacity(players.len());
@@ -235,7 +262,7 @@ impl<'a> Hand<'a, Playing<'a>> {
         while index < num_tricks {
             println!("Playing trick: {}", index);
             let player_hands = &mut player_hands;
-            let trick = Trick::<trick::Start>::new(&trump, players, player_hands)
+            let trick = Trick::<trick::Start>::new(&trump, player_order, player_hands)
                 .play_trick()
                 .determine_winner();
             let winner = trick.get_winner();
@@ -247,6 +274,7 @@ impl<'a> Hand<'a, Playing<'a>> {
                     new_won
                 }
             };
+            player_order = set_new_player_order(winner);
             index += 1;
         }
 
