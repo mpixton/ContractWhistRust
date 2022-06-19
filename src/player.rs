@@ -66,7 +66,7 @@ impl Player for HumanPlayer {
         println!("Index Card");
         println!("--------------------");
         for (index, card) in cards.iter().enumerate() {
-            println!("{:^5}{:^2$}", index, card, MAX_DISPLAY_WIDTH - 6);
+            println!("{:^5}{:^2$}", index, card, MAX_DISPLAY_WIDTH - 5);
         }
     }
 
@@ -110,14 +110,20 @@ impl Player for HumanPlayer {
         led: Option<&Card>,
         mut cards: Vec<Card>,
     ) -> (Card, Vec<Card>) {
-        println!("Here is your hand.");
+        println!();
+        println!("Here is your hand");
         self.display_hand(&cards);
         println!("Trump is: {}", &trump);
         if let Some(card) = led {
-            println!("{} was led.", &card);
+            println!("{} was led", &card);
         }
         println!();
         println!("What card would you like to play?");
+
+        // println!();
+        // println!("HumanPlayer play_card called");
+        // println!("{:#?}", cards);
+        // println!();
 
         loop {
             let mut index = String::new();
@@ -134,10 +140,20 @@ impl Player for HumanPlayer {
                         cards.iter().filter(|e| e.get_value().1 == led_suit).count() > 0;
                     let chosen_card_is_in_led_suit =
                         cards.get(index).unwrap().get_value().1 == led_suit;
-                    if has_cards_in_led_suit && chosen_card_is_in_led_suit {
-                        return (cards.swap_remove(index), cards);
+
+                    // println!();
+                    // println!("Has card in led suit: {}", has_cards_in_led_suit);
+                    // println!("Chosen card is in led suit: {}", chosen_card_is_in_led_suit);
+                    // println!();
+
+                    if has_cards_in_led_suit {
+                        if chosen_card_is_in_led_suit {
+                            return (cards.swap_remove(index), cards);
+                        } else {
+                            println!("You must follow suit");
+                        }
                     } else {
-                        println!("You must follow suit!");
+                        return (cards.swap_remove(index), cards);
                     }
                 } else {
                     return (cards.swap_remove(index), cards);
