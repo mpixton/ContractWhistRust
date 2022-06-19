@@ -113,7 +113,6 @@ impl<'a> Hand<'a, Start> {
         num_tricks: usize,
         dealer: &'a Box<dyn Player>,
     ) -> Hand<'a, Dealing<'a>> {
-        println!("Starting a deck");
         let deck = Deck::new().deck_type(DeckType::Full).shuffle(Some(7)).end();
 
         Hand {
@@ -137,11 +136,11 @@ impl<'a> Hand<'a, Dealing<'a>> {
 
         let trump = deck.deal();
         let mut player_hands: PlayerHands = HashMap::with_capacity(players.len());
-        let mut index: usize = 0;
 
+        println!();
         println!("{} is dealing...", &dealer);
 
-        while index < num_tricks {
+        for _ in 0..num_tricks {
             for (p_index, player) in players.iter().enumerate() {
                 match player_hands.entry(player) {
                     Entry::Vacant(e) => {
@@ -154,17 +153,14 @@ impl<'a> Hand<'a, Dealing<'a>> {
                     }
                 }
             }
-            index += 1;
         }
 
         let total_players = players.len();
         let dealer_position = players.iter().position(|e| e == dealer).unwrap();
         let mut bid_order: Vec<&Box<dyn Player>> = Vec::with_capacity(total_players);
-        let mut index = dealer_position;
 
-        while index < total_players + dealer_position {
+        for index in dealer_position..total_players + dealer_position {
             bid_order.push(&players[index % total_players]);
-            index += 1;
         }
 
         Hand {
@@ -210,11 +206,9 @@ impl<'a> Hand<'a, Bidding<'a>> {
         let total_players = players.len();
         let dealer_position = players.iter().position(|e| e == dealer).unwrap();
         let mut initial_player_order: Vec<&Box<dyn Player>> = Vec::with_capacity(total_players);
-        let mut index = dealer_position;
 
-        while index < total_players + dealer_position {
+        for index in dealer_position..total_players + dealer_position {
             initial_player_order.push(&players[index % total_players]);
-            index += 1;
         }
 
         Hand {
@@ -244,11 +238,9 @@ impl<'a> Hand<'a, Playing<'a>> {
             let total_players = players.len();
             let winner_position = players.iter().position(|e| e == winner).unwrap();
             let mut new_player_order: Vec<&Box<dyn Player>> = Vec::with_capacity(total_players);
-            let mut index = winner_position;
 
-            while index < total_players + winner_position {
+            for index in winner_position..total_players + winner_position {
                 new_player_order.push(&players[index % total_players]);
-                index += 1;
             }
 
             new_player_order
@@ -257,25 +249,22 @@ impl<'a> Hand<'a, Playing<'a>> {
         let mut tricks_won: HashMap<&Box<dyn Player>, isize> =
             HashMap::with_capacity(players.len());
 
-        let mut index = 0;
-
-        while index < num_tricks {
-            println!("Playing trick: {}", index);
+        for index in 0..num_tricks {
+            println!();
+            println!("Playing trick: {}", index + 1);
             let player_hands = &mut player_hands;
             let trick = Trick::<trick::Start>::new(&trump, player_order, player_hands)
                 .play_trick()
                 .determine_winner();
             let winner = trick.get_winner();
             trick.display_trick();
-            match tricks_won.entry(winner) {
-                Entry::Vacant(_) => 1,
-                Entry::Occupied(mut won) => {
-                    let new_won = won.get_mut().to_owned() + 1;
-                    new_won
-                }
-            };
+
+            tricks_won
+                .entry(winner)
+                .and_modify(|e| *e += 1)
+                .or_insert(1);
+
             player_order = set_new_player_order(winner);
-            index += 1;
         }
 
         Hand {
@@ -294,28 +283,18 @@ impl<'a> Hand<'a, Scoring<'a>> {
 
         let mut points: HashMap<&Box<dyn Player>, isize> = HashMap::with_capacity(players.len());
 
-        // println!();
-        // println!("{:-^1$}", "Player Bids", MAX_DISPLAY_WIDTH);
-
-        // for (player, bid) in bids.iter() {
-        //     println!("- {:>2$} {}", player, bid, 20);
-        // }
-
-        // println!("{:#?}", &bids);
-        // println!("{:#?}", &tricks_won);
-
         for player in players.iter() {
             let player_bid: isize = *bids.get(player).unwrap();
             let player_tricks_won: isize = *tricks_won.get(player).unwrap_or(&0);
 
-            let sandbag: isize = player_bid.abs_diff(player_tricks_won).try_into().unwrap();
+            let sandbag: isize = player_bid - player_tricks_won;
 
             match sandbag {
                 0 => {
                     points.insert(player, 10 + player_bid);
                 }
                 num => {
-                    points.insert(player, -(10 + sandbag));
+                    points.insert(player, -(10 + num.abs()));
                 }
             };
         }
@@ -335,8 +314,10 @@ impl<'a> Hand<'a, Finished<'a>> {
 
     /// Display the final points for the Hand.
     pub fn display_points(&self) {
+        let points = &self.extra.points;
         println!();
-        for (player, points) in self.extra.points.iter() {
+        for player in self.players.iter() {
+            let points = points.get(player).unwrap();
             println!("{} scored {} points this hand", player, points);
         }
     }
