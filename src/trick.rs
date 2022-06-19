@@ -122,13 +122,14 @@ impl<'a, 'b, 'c> Trick<Playing<'a, 'b, 'c>> {
                 (card, new_hand) =
                     player.play_card(self.extra.trump_card, Some(first_card), player_hand);
             }
+            println!("{} played the {}", player, &card);
             cards_played.insert(player, card);
             player_hands.insert(player, new_hand);
         }
 
-        for (player, card) in cards_played.iter() {
-            println!("{} played the {}", player, card);
-        }
+        // for (player, card) in cards_played.iter() {
+        //     println!("{} played the {}", player, card);
+        // }
 
         Trick {
             extra: Scoring {
@@ -193,6 +194,7 @@ impl<'a> Trick<Finished<'a>> {
     }
 
     pub fn display_trick(&self) {
+        println!();
         println!("{} is the winner!", self.extra.winner);
     }
 }
