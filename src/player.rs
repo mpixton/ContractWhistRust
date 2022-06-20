@@ -81,6 +81,7 @@ impl Player for HumanPlayer {
             println!("Trump this hand is: {}", &trump);
             println!();
             self.display_hand(cards);
+            println!();
             println!("What do you bid?");
             match io::stdin().read_line(&mut input) {
                 Ok(_) => {
@@ -113,9 +114,13 @@ impl Player for HumanPlayer {
         println!();
         println!("Here is your hand");
         self.display_hand(&cards);
-        println!("Trump is: {}", &trump);
+        println!();
+        println!("Trump is: {:>1$}", &trump, MAX_DISPLAY_WIDTH - 10);
+        println!();
         if let Some(card) = led {
-            println!("{} was led", &card);
+            println!("Led Card is: {:>1$}", &card, MAX_DISPLAY_WIDTH - 13);
+        } else {
+            println!("You are the lead player");
         }
         println!();
         println!("What card would you like to play?");
