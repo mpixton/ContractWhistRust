@@ -316,9 +316,11 @@ impl<'a> Hand<'a, Finished<'a>> {
     pub fn display_points(&self) {
         let points = &self.extra.points;
         println!();
+        println!("     Player         Score");
+        println!("{}", "-".repeat(26));
         for player in self.players.iter() {
             let points = points.get(player).unwrap();
-            println!("{} scored {} points this hand", player, points);
+            println!("{:<20} {:^5}", format!("{}", player), points);
         }
     }
 }
