@@ -1,4 +1,6 @@
 #![allow(dead_code)]
+#![allow(unused_variables, unused_imports)]
+#![allow(clippy::borrowed_box)]
 
 mod card;
 mod deck;
@@ -9,15 +11,15 @@ mod rank;
 mod suit;
 mod trick;
 
+use core::num;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
-
-use hand::Start;
 
 use crate::card::Card;
 use crate::deck::{Deck, DeckType};
 use crate::game::MormonBridgeGame;
-use crate::hand::NewHand;
+use crate::hand::Hand;
+use crate::hand::Start;
 use crate::player::{HumanPlayer, Player};
 use crate::trick::{Playing, Trick};
 
@@ -25,13 +27,7 @@ use crate::trick::{Playing, Trick};
 type PlayerHands<'a> = HashMap<&'a Box<dyn Player>, Vec<Card>>;
 
 fn main() {
-    let game = MormonBridgeGame::new();
-
-    game.display_players();
-
-    let hand = NewHand::<hand::Start>::new(&game.players, 2);
-
-    hand.deal_players_in().get_player_bids().play_tricks();
+    let game = MormonBridgeGame::play(true);
 }
 
 pub const MAX_DISPLAY_WIDTH: usize = 35;
