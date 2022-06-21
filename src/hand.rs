@@ -11,16 +11,17 @@
 //! tricks won to the player's bid of tricks won and points tallied.
 //!
 //! # Todo
-//! [] Implement scoring logic
-//! [] Change the order of the players passed to the trick based on the previous trick's winner
+//! [x] Implement scoring logic
+//! [x] Change the order of the players passed to the trick based on the previous trick's winner
+//! [] Update layout so that Trick::new returns a Builder and Trick<Finished> is just a Trick struct
 
-//! Possible states for the hand:
-//! [Start]: Used to create a new Hand
-//! [Dealing]: the hand is dealing all players in and setting trump
-//! [Bidding]: asking each player for their bid for the hand
-//! [Playing]: playing the hand by playing a series of tricks
-//! [Scoring]: players are being scored on the hand
-//! [Finished]: the hand is over and players scored
+//! # States
+//! [Start]: Used to create a new Hand <br>
+//! [Dealing]: the hand is dealing all players in and setting trump <br>
+//! [Bidding]: asking each player for their bid for the hand <br>
+//! [Playing]: playing the hand by playing a series of tricks <br>
+//! [Scoring]: players are being scored on the hand <br>
+//! [Finished]: the hand is over and players scored <br>
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
