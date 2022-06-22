@@ -11,17 +11,15 @@
 //! tricks won to the player's bid of tricks won and points tallied.
 //!
 //! # Todo
-//! [x] Implement scoring logic
-//! [x] Change the order of the players passed to the trick based on the previous trick's winner
-//! [] Update layout so that Trick::new returns a Builder and Trick<Finished> is just a Trick struct
+//! - [x] Implement scoring logic
+//! - [x] Change the order of the players passed to the trick based on the previous trick's winner
+//! - [ ] Update layout so that Trick::new returns a Builder and Trick<Finished> is just a Trick struct
 
 //! # States
-//! [Start]: Used to create a new Hand <br>
 //! [Dealing]: the hand is dealing all players in and setting trump <br>
 //! [Bidding]: asking each player for their bid for the hand <br>
 //! [Playing]: playing the hand by playing a series of tricks <br>
 //! [Scoring]: players are being scored on the hand <br>
-//! [Finished]: the hand is over and players scored <br>
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -36,16 +34,15 @@ use crate::{PlayerHands, MAX_DISPLAY_WIDTH};
 ///
 /// The Hand progresses through 5 states which determine the data stored in the hand.
 #[derive(Debug)]
-pub struct Hand<'a, T: HandState> {
+pub struct Hand<'a> {
+    players: &'a Vec<Box<dyn Player>>,
+    points: HashMap<&'a Box<dyn Player>, isize>,
+}
+
+pub struct InProgressHand<'a, T: HandState> {
     players: &'a Vec<Box<dyn Player>>,
     extra: T,
 }
-
-/// Used to only to create a new [Hand].
-///
-/// Creates a new [Hand] and returns the [Dealing] state.
-#[derive(Debug)]
-pub struct Start {}
 
 /// State of the [Hand] while dealing players in.
 ///
@@ -92,31 +89,30 @@ pub struct Scoring<'a> {
     tricks_won: HashMap<&'a Box<dyn Player>, isize>,
 }
 
-/// Final state of the [Hand] containing total points scored by player.
-#[derive(Debug)]
-pub struct Finished<'a> {
-    points: HashMap<&'a Box<dyn Player>, isize>,
-}
+// /// Final state of the [Hand] containing total points scored by player.
+// #[derive(Debug)]
+// pub struct Finished<'a> {
+//     points: HashMap<&'a Box<dyn Player>, isize>,
+// }
 
 /// Used to constraint the structs that may be used with [Hand].
 pub trait HandState {}
-impl HandState for Start {}
 impl<'a> HandState for Dealing<'a> {}
 impl<'a> HandState for Bidding<'a> {}
 impl<'a> HandState for Playing<'a> {}
 impl<'a> HandState for Scoring<'a> {}
-impl<'a> HandState for Finished<'a> {}
 
-impl<'a> Hand<'a, Start> {
+impl<'a> Hand<'a> {
     /// Creates the new [Hand] and returns the [Dealing] state.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         players: &'a Vec<Box<dyn Player>>,
         num_tricks: usize,
         dealer: &'a Box<dyn Player>,
-    ) -> Hand<'a, Dealing<'a>> {
+    ) -> InProgressHand<'a, Dealing<'a>> {
         let deck = Deck::new().deck_type(DeckType::Full).shuffle(Some(7)).end();
 
-        Hand {
+        InProgressHand {
             players,
             extra: Dealing {
                 deck,
@@ -125,11 +121,28 @@ impl<'a> Hand<'a, Start> {
             },
         }
     }
+
+    /// Get the player scores for the Hand.
+    pub fn get_scores(&self) -> &HashMap<&'a Box<dyn Player>, isize> {
+        &self.points
+    }
+
+    /// Display the final points for the Hand.
+    pub fn display_points(&self) {
+        let points = &self.points;
+        println!();
+        println!("     Player         Score");
+        println!("{}", "-".repeat(26));
+        for player in self.players.iter() {
+            let points = points.get(player).unwrap();
+            println!("{:<20} {:^5}", format!("{}", player), points);
+        }
+    }
 }
 
-impl<'a> Hand<'a, Dealing<'a>> {
+impl<'a> InProgressHand<'a, Dealing<'a>> {
     /// Generates a hand of cards for each player, set the trump, and returns the [Bidding] state.
-    pub fn deal_players_in(self) -> Hand<'a, Bidding<'a>> {
+    pub fn deal_players_in(self) -> InProgressHand<'a, Bidding<'a>> {
         let players = self.players;
         let num_tricks = self.extra.num_tricks;
         let mut deck = self.extra.deck;
@@ -164,7 +177,7 @@ impl<'a> Hand<'a, Dealing<'a>> {
             bid_order.push(&players[index % total_players]);
         }
 
-        Hand {
+        InProgressHand {
             players,
             extra: Bidding {
                 player_hands,
@@ -177,9 +190,9 @@ impl<'a> Hand<'a, Dealing<'a>> {
     }
 }
 
-impl<'a> Hand<'a, Bidding<'a>> {
+impl<'a> InProgressHand<'a, Bidding<'a>> {
     // Ask each player for their bid this Hand and return the Playing state.
-    pub fn get_player_bids(self) -> Hand<'a, Playing<'a>> {
+    pub fn get_player_bids(self) -> InProgressHand<'a, Playing<'a>> {
         let player_hands: PlayerHands = self.extra.player_hands;
         let trump = self.extra.trump;
         let players = self.players;
@@ -212,7 +225,7 @@ impl<'a> Hand<'a, Bidding<'a>> {
             initial_player_order.push(&players[index % total_players]);
         }
 
-        Hand {
+        InProgressHand {
             players,
             extra: Playing {
                 bids,
@@ -225,9 +238,9 @@ impl<'a> Hand<'a, Bidding<'a>> {
     }
 }
 
-impl<'a> Hand<'a, Playing<'a>> {
+impl<'a> InProgressHand<'a, Playing<'a>> {
     // Plays through the number of tricks in this Hand and returns the Scoring state.
-    pub fn play_tricks(self) -> Hand<'a, Scoring<'a>> {
+    pub fn play_tricks(self) -> InProgressHand<'a, Scoring<'a>> {
         let mut player_hands = self.extra.player_hands;
         let trump = self.extra.trump;
         let players = self.players;
@@ -254,7 +267,7 @@ impl<'a> Hand<'a, Playing<'a>> {
             println!();
             println!("Playing trick: {}", index + 1);
             let player_hands = &mut player_hands;
-            let trick = Trick::<trick::Start>::new(&trump, player_order, player_hands)
+            let trick = Trick::new(&trump, player_order, player_hands)
                 .play_trick()
                 .determine_winner();
             let winner = trick.get_winner();
@@ -268,16 +281,16 @@ impl<'a> Hand<'a, Playing<'a>> {
             player_order = set_new_player_order(winner);
         }
 
-        Hand {
+        InProgressHand {
             players,
             extra: Scoring { bids, tricks_won },
         }
     }
 }
 
-impl<'a> Hand<'a, Scoring<'a>> {
+impl<'a> InProgressHand<'a, Scoring<'a>> {
     /// Score the Hand and return a Finished Hand.
-    pub fn score_hand(self) -> Hand<'a, Finished<'a>> {
+    pub fn score_hand(self) -> Hand<'a> {
         let players = self.players;
         let tricks_won = self.extra.tricks_won;
         let bids = self.extra.bids;
@@ -300,28 +313,6 @@ impl<'a> Hand<'a, Scoring<'a>> {
             };
         }
 
-        Hand {
-            players,
-            extra: Finished { points },
-        }
-    }
-}
-
-impl<'a> Hand<'a, Finished<'a>> {
-    /// Get the player scores for the Hand.
-    pub fn get_scores(&self) -> &HashMap<&'a Box<dyn Player>, isize> {
-        &self.extra.points
-    }
-
-    /// Display the final points for the Hand.
-    pub fn display_points(&self) {
-        let points = &self.extra.points;
-        println!();
-        println!("     Player         Score");
-        println!("{}", "-".repeat(26));
-        for player in self.players.iter() {
-            let points = points.get(player).unwrap();
-            println!("{:<20} {:^5}", format!("{}", player), points);
-        }
+        Hand { players, points }
     }
 }
