@@ -1,12 +1,50 @@
+//! Functionality related to a [Player] of a Card game, such as bidding and
+//! playing cards from a hand.
+//!
+//! Contains two types of Players, Human and AI. Human players ask for input
+//! from stdinput and AI players make plays based on pre-decided logic.
+//!
+//! AI bidding logic is simple. AI players bid one for each card in trump. At a
+//! future point, they will also take into account if they are the lead player
+//! or not and adjust their bid accordingly.
+//!
+//! AI playing logic is also simple. They prefer playing high in the lead suit.
+//! If no card in the led suit is found, they switch over to trump, playing low
+//! to high. Otherwise, they play the highest slough card with no respect to
+//! rank.
+//!
+//! Human players are asked for their bid and play from stdinput. Constraints
+//! are placed so that a human player may not bid higher than the number of
+//! tricks, a Card may not be played that they don't have, and that they must
+//! follow suit if they have a card in the led suit.
+//!
+//! # Todo
+//! - [ ] Update documentation
+//! - [ ] Add lead player to bidding logic
+
 use std::{fmt, hash, io};
 
 use crate::{card::Card, MAX_DISPLAY_WIDTH};
 
+/// Trait defining base Player behavior.
+///
+/// All that is expected is that the Player will store a `name`. This
+/// name is used as a key in HashMaps for storing the cards in a Player's hand
+/// and the points for the hand and game. The Hash, PartialEq, and Eq trait
+/// implementations rely only on the player's name, so two players with the same
+/// name are equal to each other and will have the same hash.
 pub trait Player {
+    /// Returns the name of the Player.
+    ///
+    /// Used in the Hash, PartialEq, and Eq implementation.
     fn get_name(&self) -> &String;
+    /// Returns a card selected from the Player's hand.
     fn play_card(&self, trump: &Card, led: Option<&Card>, cards: Vec<Card>) -> (Card, Vec<Card>);
+    /// Displays the hand of the Player.
     fn display_hand(&self, cards: &[Card]);
+    /// Returns the Player's bid.
     fn get_player_bid(&self, trump: &Card, tricks_this_bid: &usize, cards: &[Card]) -> isize;
+    /// Used to implement the Clone trait.
     fn clone_dyn(&self) -> Box<dyn Player>;
 }
 
@@ -42,12 +80,16 @@ impl Clone for Box<dyn Player> {
     }
 }
 
+/// The Human implementation of the Player trait.
+///
+/// Asks the user for their input for bids and card plays.
 #[derive(Debug, Clone)]
 pub struct HumanPlayer {
     name: String,
 }
 
 impl HumanPlayer {
+    /// Creates a new HumanPlayer.
     pub fn new(name: String) -> HumanPlayer {
         HumanPlayer { name }
     }
@@ -185,6 +227,7 @@ impl AIPlayer {
 }
 
 impl Player for AIPlayer {
+    /// Used in the trait Player impl of Clone
     fn clone_dyn(&self) -> Box<dyn Player> {
         Box::new(self.clone())
     }
