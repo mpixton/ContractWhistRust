@@ -1,3 +1,6 @@
+//! Todo
+//! [] Update documentation
+
 use std::fmt;
 
 use crate::rank::Rank;
