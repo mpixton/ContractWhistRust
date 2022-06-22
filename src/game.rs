@@ -80,7 +80,7 @@ impl MormonBridgeGame {
 
     fn display_players(players: Vec<Box<dyn Player>>) {
         println!("{:^1$}", "Players", MAX_DISPLAY_WIDTH);
-        println!("{:-<1$}", "", MAX_DISPLAY_WIDTH);
+        println!("{}", "-".repeat(MAX_DISPLAY_WIDTH));
 
         for player in players.iter() {
             println!("{}", player.get_name());
@@ -89,7 +89,7 @@ impl MormonBridgeGame {
 
     fn display_cumulative_points(
         cumulative_points: &HashMap<&Box<dyn Player>, isize>,
-        players: &Vec<Box<dyn Player>>,
+        players: &[Box<dyn Player>],
     ) {
         println!();
         println!("     Player         Score");
