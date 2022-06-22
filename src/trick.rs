@@ -1,16 +1,19 @@
 //! A play of a Trick of Mormon Bridge, consisting of asking players for their plays.
 //!
 //! The Trick progresses through four states. The first is the Start state, where player
-//! hands, the player order, and the trump card are passed into the struct. This state
-//! is used to create a Playing state. The Playing state is used to ask each player, in
-//! order, for their plays. Once all plays are collected, the trick enters the Scoring
-//! state to determine the winner. After scoring, the trick comes to rest in the
-//! Finished state, which is used to get the trick winner.
+//! hands, the player order, and the trump card are passed into the struct. This is
+//! initiated by calling the `new()` function on the Trick struct. This state is used to
+//! create a Playing state. The Playing state is used to ask each player, in order, for
+//! their plays. Once all plays are collected, the trick enters the Scoring state to
+//! determine the winner. After scoring, the trick comes to rest in the Finished state,
+//! which is used to get the trick winner.
 //!
-//! [Start]: Used only to create a [Trick]. <br>
+//! # States
 //! [Playing]: Asks each player in order for their [Card]s. <br>
 //! [Scoring]: Determines the winner of the [Trick] based on the Trump and Led suit. <br>
-//! [Finished]: Stores the winner of the [Trick]. <br>
+//!
+//! # Todo
+//! - [ ] Update documentation <br>
 
 use std::collections::HashMap;
 
@@ -20,14 +23,16 @@ use crate::suit::Suit;
 use crate::PlayerHands;
 
 /// Trick struct for using Generic Type Parameters.
-pub struct Trick<T: TrickState> {
-    extra: T,
+pub struct Trick<'a> {
+    winner: &'a Box<dyn Player>,
 }
 
-/// Used only to create the [Trick].
+/// Struct to carry a Trick from start to finish.
 ///
-/// Creates a new [Trick] and returns the [Playing] state.
-pub struct Start {}
+/// Only stores the data needed to take it through the playing states.
+pub struct InProgressTrick<T: TrickState> {
+    extra: T,
+}
 
 /// State of the [Trick] while being played.
 ///
@@ -68,27 +73,19 @@ where
     player_hands: &'c mut PlayerHands<'a>,
 }
 
-/// Final state of the [Trick].
-///
-/// Stores the winner of the [Trick] as a reference to a [Player] as received from the `cards_played` key.
-pub struct Finished<'a> {
-    winner: &'a Box<dyn Player>,
-}
-
 pub trait TrickState {}
-impl<'a> TrickState for Start {}
 impl<'a, 'b, 'c> TrickState for Playing<'a, 'b, 'c> {}
 impl<'a, 'b, 'c> TrickState for Scoring<'a, 'b, 'c> {}
-impl<'a> TrickState for Finished<'a> {}
 
-impl<'a, 'b, 'c> Trick<Start> {
+impl<'a, 'b, 'c> Trick<'a> {
     /// Creates a new [Trick] and returns the [Playing] state.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         trump_card: &'b Card,
         players: Vec<&'a Box<dyn Player>>,
         player_hands: &'c mut PlayerHands<'a>,
-    ) -> Trick<Playing<'a, 'b, 'c>> {
-        Trick {
+    ) -> InProgressTrick<Playing<'a, 'b, 'c>> {
+        InProgressTrick {
             extra: Playing {
                 trump_card,
                 player_hands,
@@ -97,11 +94,21 @@ impl<'a, 'b, 'c> Trick<Start> {
             },
         }
     }
+
+    /// Returns the winner of the [Trick].
+    pub fn get_winner(&self) -> &'a Box<dyn Player> {
+        self.winner
+    }
+
+    pub fn display_trick(&self) {
+        println!();
+        println!("{} is the winner!", self.winner);
+    }
 }
 
-impl<'a, 'b, 'c> Trick<Playing<'a, 'b, 'c>> {
+impl<'a, 'b, 'c> InProgressTrick<Playing<'a, 'b, 'c>> {
     /// Asks [Player]s for their [Card]s and returns the [Scoring] state.
-    pub fn play_trick(self) -> Trick<Scoring<'a, 'b, 'c>> {
+    pub fn play_trick(self) -> InProgressTrick<Scoring<'a, 'b, 'c>> {
         let player_hands = self.extra.player_hands;
         let players = self.extra.players;
         let trump_card: &'b Card = self.extra.trump_card;
@@ -131,7 +138,7 @@ impl<'a, 'b, 'c> Trick<Playing<'a, 'b, 'c>> {
         //     println!("{} played the {}", player, card);
         // }
 
-        Trick {
+        InProgressTrick {
             extra: Scoring {
                 cards_played,
                 players,
@@ -142,9 +149,9 @@ impl<'a, 'b, 'c> Trick<Playing<'a, 'b, 'c>> {
     }
 }
 
-impl<'a, 'b, 'c> Trick<Scoring<'a, 'b, 'c>> {
+impl<'a, 'b, 'c> InProgressTrick<Scoring<'a, 'b, 'c>> {
     /// Determines the winner and returns the [Finished] state.
-    pub fn determine_winner(self) -> Trick<Finished<'a>> {
+    pub fn determine_winner(self) -> Trick<'a> {
         let players = self.extra.players;
         let cards_played = self.extra.cards_played;
 
@@ -181,20 +188,6 @@ impl<'a, 'b, 'c> Trick<Scoring<'a, 'b, 'c>> {
         // Set the winner and return the new state
         let winner = cards.first().unwrap().2;
 
-        Trick {
-            extra: Finished { winner },
-        }
-    }
-}
-
-impl<'a> Trick<Finished<'a>> {
-    /// Returns the winner of the [Trick].
-    pub fn get_winner(&self) -> &'a Box<dyn Player> {
-        self.extra.winner
-    }
-
-    pub fn display_trick(&self) {
-        println!();
-        println!("{} is the winner!", self.extra.winner);
+        Trick { winner }
     }
 }
