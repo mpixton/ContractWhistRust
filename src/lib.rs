@@ -9,14 +9,14 @@ use crate::player::Player;
 
 pub use crate::game::MormonBridgeGame;
 
-mod card;
-mod deck;
-mod game;
-mod hand;
-mod player;
-mod rank;
-mod suit;
-mod trick;
+pub(crate) mod card;
+pub(crate) mod deck;
+pub(crate) mod game;
+pub(crate) mod hand;
+pub(crate) mod player;
+pub(crate) mod rank;
+pub(crate) mod suit;
+pub(crate) mod trick;
 
 /// Type alias for Player Hand.
 type PlayerHands<'a> = HashMap<&'a Box<dyn Player>, Vec<Card>>;
