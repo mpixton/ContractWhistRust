@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_variables, unused_imports)]
 #![allow(clippy::borrowed_box)]
 
 use std::collections::HashMap;

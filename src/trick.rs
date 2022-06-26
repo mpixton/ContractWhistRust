@@ -51,7 +51,6 @@ where
     'a: 'b,
     'b: 'c,
 {
-    cards_played: HashMap<&'a Box<dyn Player>, Card>,
     players: Vec<&'a Box<dyn Player>>,
     trump_card: &'b Card,
     player_hands: &'c mut PlayerHands<'a>,
@@ -62,20 +61,18 @@ where
 /// Determines the winner of the [Trick] based on the Trump and Led suit.
 ///
 /// See [Playing] for a discussion on the lifetimes.
-pub struct Scoring<'a, 'b, 'c>
+pub struct Scoring<'a, 'b>
 where
     'a: 'b,
-    'b: 'c,
 {
     cards_played: HashMap<&'a Box<dyn Player>, Card>,
     trump_card: &'b Card,
     players: Vec<&'a Box<dyn Player>>,
-    player_hands: &'c mut PlayerHands<'a>,
 }
 
 pub trait TrickState {}
 impl<'a, 'b, 'c> TrickState for Playing<'a, 'b, 'c> {}
-impl<'a, 'b, 'c> TrickState for Scoring<'a, 'b, 'c> {}
+impl<'a, 'b, 'c> TrickState for Scoring<'a, 'b> {}
 
 impl<'a, 'b, 'c> Trick<'a> {
     /// Creates a new [Trick] and returns the [Playing] state.
@@ -89,7 +86,6 @@ impl<'a, 'b, 'c> Trick<'a> {
             extra: Playing {
                 trump_card,
                 player_hands,
-                cards_played: HashMap::with_capacity(players.len()),
                 players,
             },
         }
@@ -108,7 +104,7 @@ impl<'a, 'b, 'c> Trick<'a> {
 
 impl<'a, 'b, 'c> InProgressTrick<Playing<'a, 'b, 'c>> {
     /// Asks [Player]s for their [Card]s and returns the [Scoring] state.
-    pub fn play_trick(self) -> InProgressTrick<Scoring<'a, 'b, 'c>> {
+    pub fn play_trick(self) -> InProgressTrick<Scoring<'a, 'b>> {
         let player_hands = self.extra.player_hands;
         let players = self.extra.players;
         let trump_card: &'b Card = self.extra.trump_card;
@@ -143,13 +139,12 @@ impl<'a, 'b, 'c> InProgressTrick<Playing<'a, 'b, 'c>> {
                 cards_played,
                 players,
                 trump_card,
-                player_hands,
             },
         }
     }
 }
 
-impl<'a, 'b, 'c> InProgressTrick<Scoring<'a, 'b, 'c>> {
+impl<'a, 'b, 'c> InProgressTrick<Scoring<'a, 'b>> {
     /// Determines the winner and returns the [Finished] state.
     pub fn determine_winner(self) -> Trick<'a> {
         let players = self.extra.players;

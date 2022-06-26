@@ -31,7 +31,7 @@ impl Card {
     /// # use mormon_bridge::card::Card;
     ///
     /// let card = Card::new(Rank::Ace, Suit::Hearts);
-    /// assert_eq!(card.get_value(), (&Rank::Ace, &Suit::Hearts));
+    /// assert_eq!((&Rank::Ace, &Suit::Hearts), card.get_value());
     /// ```
     pub fn get_value(&self) -> (&Rank, &Suit) {
         (&self.rank, &self.suit)

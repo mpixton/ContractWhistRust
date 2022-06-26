@@ -27,3 +27,21 @@ impl fmt::Display for Suit {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn suit_names_are_correct_when_printed() {
+        let expected_names: [String; 4] = [
+            "Hearts".to_string(),
+            "Clubs".to_string(),
+            "Diamonds".to_string(),
+            "Spades".to_string(),
+        ];
+        let actual_names = Suit::VALUES.map(|e| format!("{}", e));
+
+        assert_eq!(expected_names, actual_names);
+    }
+}

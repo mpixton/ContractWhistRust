@@ -6,7 +6,6 @@
 //! - [ ] Add typestate pattern
 
 use std::collections::HashMap;
-use std::hash::Hash;
 use std::io;
 
 use crate::hand::Hand;
@@ -41,6 +40,10 @@ impl MormonBridgeGame {
             );
             players.push(Box::new(ai));
         }
+
+        println!("Welcome, {}", &players[0].get_name());
+        println!("You are playing with:");
+        MormonBridgeGame::display_players(&players);
 
         let tricks = match debug {
             false => MormonBridgeGame::TRICKS_PER_HAND.to_vec(),
@@ -78,7 +81,7 @@ impl MormonBridgeGame {
         MormonBridgeGame::display_cumulative_points(&cumulative_points, &players);
     }
 
-    fn display_players(players: Vec<Box<dyn Player>>) {
+    fn display_players(players: &[Box<dyn Player>]) {
         println!("{:^1$}", "Players", MAX_DISPLAY_WIDTH);
         println!("{}", "-".repeat(MAX_DISPLAY_WIDTH));
 

@@ -27,7 +27,7 @@ use std::collections::HashMap;
 use crate::card::Card;
 use crate::deck::{Deck, DeckType};
 use crate::player::Player;
-use crate::trick::{self, Trick};
+use crate::trick::Trick;
 use crate::{PlayerHands, MAX_DISPLAY_WIDTH};
 
 /// Base struct of the Hand, used with the HandState trait structs.
@@ -155,7 +155,7 @@ impl<'a> InProgressHand<'a, Dealing<'a>> {
         println!("{} is dealing...", &dealer);
 
         for _ in 0..num_tricks {
-            for (p_index, player) in players.iter().enumerate() {
+            for player in players.iter() {
                 match player_hands.entry(player) {
                     Entry::Vacant(e) => {
                         let mut cards = Vec::with_capacity(num_tricks);

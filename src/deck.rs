@@ -39,6 +39,7 @@ impl Deck {
     }
 
     /// Prints all the Cards in the Deck in order for debugging purposes.
+    #[allow(dead_code)]
     pub fn debug_deck(&self) {
         for card in self.cards.iter() {
             println!("{}", card)
@@ -46,6 +47,7 @@ impl Deck {
     }
 
     /// Returns the number of Cards left in the Deck.
+    #[allow(dead_code)]
     pub fn total_cards(&self) -> usize {
         self.cards.len()
     }
@@ -56,6 +58,7 @@ impl Deck {
     }
 
     /// Returns a static card intended to be used for debugging.
+    #[allow(dead_code)]
     pub fn debug_trump(&mut self) -> Card {
         *self
             .cards
@@ -68,6 +71,7 @@ impl Deck {
     }
 
     /// Returns a a series of static cards, intended to be used for debugging.
+    #[allow(dead_code)]
     pub fn debug_deal(&mut self, index: usize) -> Card {
         let debug_suit = &Suit::VALUES[index % 4];
         let debug_rank = &Rank::VALUES[index % 7];
@@ -118,11 +122,12 @@ impl DeckBuilder {
     }
 
     /// Shuffles the [Deck] 7 times.
+    #[allow(dead_code)]
     pub fn default_shuffle(self) -> DeckBuilder {
         let mut cards = self.cards;
         let mut shuffling = || cards.shuffle(&mut thread_rng());
         {
-            for i in 0..7 {
+            for _ in 0..7 {
                 shuffling();
             }
         }
