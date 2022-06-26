@@ -110,7 +110,7 @@ impl<'a> Hand<'a> {
         num_tricks: usize,
         dealer: &'a Box<dyn Player>,
     ) -> InProgressHand<'a, Dealing<'a>> {
-        let deck = Deck::new().deck_type(DeckType::Full).shuffle(Some(7)).end();
+        let deck = Deck::new().deck_type(DeckType::Full).shuffle(7).end();
 
         InProgressHand {
             players,

@@ -1,3 +1,5 @@
+//! All Ranks in a French deck of cards.
+
 use std::fmt;
 
 /// Enum of all Ranks in a French deck of cards.
@@ -19,7 +21,7 @@ pub enum Rank {
 }
 
 impl Rank {
-    /// All Ranks for iterating over while creating a deck.
+    /// All Ranks for easy iteration.
     pub const VALUES: [Rank; 13] = [
         Self::Ace,
         Self::King,
@@ -66,7 +68,6 @@ impl Rank {
     /// Returns the numerical representation of an Aces Low deck.
     fn _aces_low_mapping(&self) -> i32 {
         match &self {
-            Rank::Ace => 14,
             Rank::King => 13,
             Rank::Queen => 12,
             Rank::Jack => 11,
@@ -79,10 +80,12 @@ impl Rank {
             Rank::Four => 4,
             Rank::Three => 3,
             Rank::Two => 2,
+            Rank::Ace => 1,
         }
     }
 }
 
+/// Returns a user friendly string representation of the Rank
 impl fmt::Display for Rank {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

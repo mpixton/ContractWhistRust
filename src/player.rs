@@ -254,7 +254,6 @@ impl Player for AIPlayer {
 
     /// Logic for playing a Card
     /// # Logic
-    /// ```
     /// If there has been a led card:
     ///   Must follow suit and play the lowest ranking card in the led suit
     ///   If no cards in the led suit:
@@ -265,7 +264,7 @@ impl Player for AIPlayer {
     ///   Lead with highest trump
     ///   If no cards in trump:
     ///    Play highest ranking card
-    /// ```
+    ///
     fn play_card(
         &self,
         trump: &Card,

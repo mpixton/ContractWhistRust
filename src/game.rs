@@ -1,9 +1,9 @@
-//! Main struct of the crate and entrypoint for playing a game.
+//! Entrypoint for playing a game of Mormon Bridge.
 //!
 //! # Todo
-//! [] Update documentation
-//! [x] Call a series of hands automatically
-//! [] Add typestate pattern
+//! - [ ] Update documentation
+//! - [ x ] Call a series of hands automatically
+//! - [ ] Add typestate pattern
 
 use std::collections::HashMap;
 use std::hash::Hash;

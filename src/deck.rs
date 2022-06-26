@@ -8,13 +8,12 @@
 //! # Examples
 //! ```
 //! // Create a new full 52 card deck and shuffle it 7 times
-//! let deck = Deck::new().deck_type(DeckType::Full).shuffle(Some(7));
+//! let deck = Deck::new().deck_type(DeckType::Full).shuffle(7);
 //! assert_eq!(deck.len(), 52);
 //! ```
 //!
 //! # Todo
-//! [] Update documentation
-//! [] TypeState DeckBuilder to prevent excessive shuffling
+//! - [ ] Update documentation
 
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
@@ -101,7 +100,7 @@ pub struct DeckBuilder {
 }
 
 impl DeckBuilder {
-    /// Set the type of Deck, which determines the amount, rank, and suit of cards.
+    /// Set the type of Deck, which determines the amount, Rank range, and Suit of cards.
     pub fn deck_type(self, deck_type: DeckType) -> DeckBuilder {
         let total_cards = match deck_type {
             DeckType::Full => 52,
@@ -118,37 +117,55 @@ impl DeckBuilder {
         DeckBuilder { cards }
     }
 
-    /// Shuffles the Deck 7 times.
-    pub fn default_shuffle(mut self) -> DeckBuilder {
-        let mut shuffling = || self.cards.shuffle(&mut thread_rng());
+    /// Shuffles the [Deck] 7 times.
+    pub fn default_shuffle(self) -> DeckBuilder {
+        let mut cards = self.cards;
+        let mut shuffling = || cards.shuffle(&mut thread_rng());
         {
             for i in 0..7 {
                 shuffling();
             }
         }
 
-        DeckBuilder { cards: self.cards }
+        DeckBuilder { cards }
     }
 
-    /// Shuffles the Deck anywhere from 1 to 10 times.
-    pub fn shuffle(mut self, shuffles: Option<i8>) -> DeckBuilder {
-        let mut shuffling = || self.cards.shuffle(&mut thread_rng());
+    /// Shuffles the [Deck] anywhere from 1 to 10 times.
+    pub fn shuffle(self, shuffles: usize) -> DeckBuilder {
+        let mut cards = self.cards;
+        let mut shuffling = || cards.shuffle(&mut thread_rng());
 
         match shuffles {
-            Some(iters) if iters > 1 && iters < 10 => {
-                for i in 1..=iters {
+            1..=10 => {
+                for _ in 0..=shuffles {
                     shuffling();
                 }
             }
             _ => shuffling(),
         }
 
-        DeckBuilder { cards: self.cards }
+        DeckBuilder { cards }
     }
 
-    /// Finishes configuration of the Deck and returns a new Deck.
-    pub fn end(self) -> Deck {
+    /// Used by `end` to ensure the [Deck] is always cut before use.
+    fn cut_deck(self) -> DeckBuilder {
         let cards = self.cards;
+
+        let halfway_point = cards.len() / 2;
+
+        let (first_split, second_split) = cards.split_at(halfway_point);
+
+        let first_split = first_split.to_vec();
+        let second_split = second_split.to_vec();
+
+        DeckBuilder {
+            cards: [second_split, first_split].concat(),
+        }
+    }
+
+    /// Finishes configuration of the [Deck] by cutting itself and returns a new [Deck].
+    pub fn end(self) -> Deck {
+        let cards = self.cut_deck().cards;
 
         Deck { cards }
     }
