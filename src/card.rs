@@ -53,3 +53,30 @@ impl fmt::Display for Card {
         write!(f, "{} of {}", self.rank, self.suit)
     }
 }
+
+mod tests {
+    use super::*;
+
+    #[allow(dead_code)]
+    fn setup() -> Card {
+        Card::new(Rank::Ace, Suit::Hearts)
+    }
+
+    #[test]
+    fn get_value_returns_rank_suit_tuple() {
+        let card = setup();
+        assert_eq!(card.get_value(), (&Rank::Ace, &Suit::Hearts));
+    }
+
+    #[test]
+    fn suit_returns_card_suit() {
+        let card = setup();
+        assert_eq!(card.suit(), Suit::Hearts);
+    }
+
+    #[test]
+    fn rank_returns_card_rank() {
+        let card = setup();
+        assert_eq!(card.rank(), Rank::Ace);
+    }
+}
