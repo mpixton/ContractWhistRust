@@ -361,3 +361,138 @@ impl Player for AIPlayer {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::card::Card;
+    use crate::rank::Rank;
+    use crate::suit::Suit;
+
+    fn setup() -> (Card, Card, AIPlayer) {
+        (
+            Card::new(Rank::Ace, Suit::Hearts),
+            Card::new(Rank::Three, Suit::Clubs),
+            AIPlayer::new(String::from("Tester")),
+        )
+    }
+
+    #[test]
+    fn ai_player_follows_suit() {
+        let (trump_card, led_card, player) = setup();
+        let expected_play = Card::new(Rank::Queen, led_card.suit());
+        let other_card = Card::new(Rank::Two, Suit::Spades);
+        let player_hand = vec![expected_play, other_card];
+
+        let (card, new_hand) = player.play_card(&trump_card, Some(&led_card), player_hand);
+        assert_eq!(card, expected_play);
+        assert_eq!(new_hand.len(), 1);
+        assert!(new_hand.contains(&other_card));
+    }
+
+    #[test]
+    fn ai_player_sloughs_highest_card_when_no_other_play() {
+        let (trump_card, led_card, player) = setup();
+        let slough_card = Card::new(Rank::Jack, Suit::Diamonds);
+        let other_card = Card::new(Rank::Four, Suit::Spades);
+        let player_hand = vec![slough_card, other_card];
+
+        let (played, new_hand) = player.play_card(&trump_card, Some(&led_card), player_hand);
+
+        assert_eq!(slough_card, played);
+        assert_eq!(new_hand.len(), 1);
+        assert!(new_hand.contains(&other_card));
+    }
+
+    #[test]
+    fn ai_player_trumps_if_given_chance() {
+        let (trump_card, led_card, player) = setup();
+        let in_trump_play = Card::new(Rank::Jack, trump_card.suit());
+        let other_card = Card::new(Rank::Four, Suit::Spades);
+        let player_hand = vec![in_trump_play, other_card];
+
+        let (played, new_hand) = player.play_card(&trump_card, Some(&led_card), player_hand);
+
+        assert_eq!(in_trump_play, played);
+        assert_eq!(new_hand.len(), 1);
+        assert!(new_hand.contains(&other_card));
+    }
+
+    #[test]
+    fn ai_player_plays_lowest_trump_if_multiple_trump() {
+        let (trump_card, led_card, player) = setup();
+        let in_trump_play = Card::new(Rank::Four, trump_card.suit());
+        let other_card = Card::new(Rank::Jack, trump_card.suit());
+        let player_hand = vec![in_trump_play, other_card];
+
+        let (played, new_hand) = player.play_card(&trump_card, Some(&led_card), player_hand);
+
+        assert_eq!(in_trump_play, played);
+        assert_eq!(new_hand.len(), 1);
+        assert!(new_hand.contains(&other_card));
+    }
+
+    #[test]
+    fn ai_player_plays_lowest_led_if_multiple_led() {
+        let (trump_card, led_card, player) = setup();
+        let in_trump_play = Card::new(Rank::Four, led_card.suit());
+        let other_card = Card::new(Rank::Jack, led_card.suit());
+        let player_hand = vec![in_trump_play, other_card];
+
+        let (played, new_hand) = player.play_card(&trump_card, Some(&led_card), player_hand);
+
+        assert_eq!(in_trump_play, played);
+        assert_eq!(new_hand.len(), 1);
+        assert!(new_hand.contains(&other_card));
+    }
+
+    #[test]
+    fn ai_player_leads_with_highest_trump() {
+        let (trump_card, _, player) = setup();
+        let led_card = Card::new(Rank::Four, trump_card.suit());
+        let other_card = Card::new(Rank::Jack, trump_card.suit());
+        let player_hand = vec![led_card, other_card];
+
+        let (played, new_hand) = player.play_card(&trump_card, None, player_hand);
+
+        assert_eq!(played, led_card);
+        assert_eq!(new_hand.len(), 1);
+        assert!(new_hand.contains(&other_card));
+    }
+
+    #[test]
+    fn ai_player_leads_with_highest_non_trump() {
+        let (trump_card, _, player) = setup();
+        let led_card = Card::new(Rank::Queen, Suit::Clubs);
+        let other_card = Card::new(Rank::Five, Suit::Clubs);
+        let player_hand = vec![led_card, other_card];
+
+        let (played, new_hand) = player.play_card(&trump_card, None, player_hand);
+
+        assert_eq!(played, led_card);
+        assert_eq!(new_hand.len(), 1);
+        assert!(new_hand.contains(&other_card));
+    }
+
+    #[test]
+    fn ai_player_bids_one_for_each_card_in_trump() {
+        let (trump_card, _, player) = setup();
+        let in_trump_play = Card::new(Rank::Four, trump_card.suit());
+        let other_card = Card::new(Rank::Jack, trump_card.suit());
+        let player_hand = vec![in_trump_play, other_card];
+
+        let bid = player.get_player_bid(&trump_card, &2, &player_hand);
+
+        assert_eq!(bid, 2);
+    }
+
+    #[test]
+    fn ai_player_stores_name() {
+        let player_name = "Tester";
+        let player = AIPlayer {
+            name: player_name.to_string(),
+        };
+
+        assert_eq!(player.get_name(), player_name);
+    }
+}

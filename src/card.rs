@@ -10,7 +10,7 @@ use crate::rank::Rank;
 use crate::suit::Suit;
 
 /// A Card, representing a traditional Card from a French deck of playing cards.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Card {
     rank: Rank,
     suit: Suit,
@@ -35,6 +35,16 @@ impl Card {
     /// ```
     pub fn get_value(&self) -> (&Rank, &Suit) {
         (&self.rank, &self.suit)
+    }
+
+    /// Access the [Rank] of the Card.
+    pub fn rank(&self) -> Rank {
+        self.rank
+    }
+
+    // Access the [Suit] of the Card.
+    pub fn suit(&self) -> Suit {
+        self.suit
     }
 }
 
