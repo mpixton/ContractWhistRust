@@ -28,6 +28,8 @@ impl MormonBridgeGame {
         println!();
 
         let mut players: Vec<Box<dyn Player>> = Vec::with_capacity(num_players + 1);
+        // TODO
+        // Add logic to reject a name of an AI player
         let human_player = HumanPlayer::new(player_name);
         players.push(Box::new(human_player));
 

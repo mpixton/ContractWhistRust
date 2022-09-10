@@ -186,3 +186,35 @@ impl<'a, 'b, 'c> InProgressTrick<Scoring<'a, 'b>> {
         Trick { winner }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::player::AIPlayer;
+    use crate::rank::Rank;
+    use crate::suit::Suit;
+
+    fn setup_trump() -> Card {
+        Card::new(Rank::Ace, Suit::Hearts)
+    }
+
+    // #[test]
+    // fn creating_new_trick_returns_playing_status() {
+    //     let trump_card = setup_trump();
+    //     let players: Vec<&Box<dyn Player>> = vec![
+    //         &Box::new(AIPlayer::new("Mickey".to_string())),
+    //         &Box::new(AIPlayer::new("Minnie".to_string())),
+    //         &Box::new(AIPlayer::new("Donald".to_string())),
+    //         &Box::new(AIPlayer::new("Daffy".to_string())),
+    //     ];
+    //     let player_hands: PlayerHands = HashMap::with_capacity(4);
+
+    //     for (index, player) in players.iter().enumerate() {
+    //         player_hands.insert(
+    //             &player,
+    //             vec![Card::new(Rank::VALUES[index % 3], Suit::VALUES[index % 3])],
+    //         );
+    //     }
+    //     let trick = Trick::new(&trump_card, players, &mut player_hands);
+    // }
+}
