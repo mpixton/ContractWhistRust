@@ -4,6 +4,7 @@
 //! - [ ] Update documentation
 //! - [ x ] Call a series of hands automatically
 //! - [ ] Add typestate pattern
+//! - [ x ] Prevent user from using an AI player name
 
 use std::collections::HashMap;
 use std::io;
@@ -28,8 +29,6 @@ impl MormonBridgeGame {
         println!();
 
         let mut players: Vec<Box<dyn Player>> = Vec::with_capacity(num_players + 1);
-        // TODO
-        // Add logic to reject a name of an AI player
         let human_player = HumanPlayer::new(player_name);
         players.push(Box::new(human_player));
 
@@ -133,7 +132,10 @@ impl MormonBridgeGame {
                 Ok(_) => {
                     let name = input.trim();
                     match name.is_empty() {
-                        false => return name.to_string(),
+                        false => match Self::AI_PLAYER_NAMES.contains(&name) {
+                            true => println!("That name is already in use by an opponent!"),
+                            false => return name.to_string(),
+                        },
                         true => println!("Please provide a name!"),
                     }
                 }
