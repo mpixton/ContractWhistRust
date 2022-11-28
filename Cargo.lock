@@ -33,6 +33,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "contract-whist-rust"
+version = "0.1.0"
+dependencies = [
+ "rand",
+]
+
+[[package]]
 name = "fuchsia-cprng"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -43,13 +50,6 @@ name = "libc"
 version = "0.2.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "349d5a591cd28b49e1d1037471617a32ddcda5731b99419008085f72d5a53836"
-
-[[package]]
-name = "mormon-bridge"
-version = "0.1.0"
-dependencies = [
- "rand",
-]
 
 [[package]]
 name = "rand"

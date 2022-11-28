@@ -1,5 +1,5 @@
-use mormon_bridge::MormonBridgeGame;
+use contract_whist::ContractWhistGame;
 
 fn main() {
-    MormonBridgeGame::play(true);
+    ContractWhistGame::play(true);
 }

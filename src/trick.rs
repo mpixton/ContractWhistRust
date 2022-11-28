@@ -1,4 +1,4 @@
-//! A play of a Trick of Mormon Bridge, consisting of asking players for their plays.
+//! A play of a Trick of Contract Whist, consisting of asking players for their plays.
 //!
 //! The Trick progresses through four states. The first is the Start state, where player
 //! hands, the player order, and the trump card are passed into the struct. This is
@@ -40,7 +40,7 @@ pub struct InProgressTrick<T: TrickState> {
 ///
 /// The `'a`, `'b`, and `'c` lifetimes are used to help the compiler with lifetimes.
 /// Lifetime `'a` is the longest, and is used for the reference to a [Player], which
-/// are instantiated when the [crate::game::MormonBridgeGame] is created. Lifetime `'b`
+/// are instantiated when the [crate::game::ContractWhistGame] is created. Lifetime `'b`
 /// is used for a reference to a trump card, which is owned by the [crate::hand::Hand]
 /// that is playing the [Trick]. Lifetime `'c'` is used to denote the lifetime of the
 /// `player_hands` borrow which is also owned by the [crate::hand::Hand] playing the

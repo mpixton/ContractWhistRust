@@ -1,4 +1,4 @@
-//! A play of a [Hand] (or round) of Mormon Bridge, consisting of dealing players in,
+//! A play of a [Hand] (or round) of Contract Whist, consisting of dealing players in,
 //! asking for bids, playing the tricks, and storing the resulting scores.
 //!
 //! The Hand progresses through 6 states. The first, Start, is only to create the Hand.

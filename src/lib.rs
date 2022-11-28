@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::card::Card;
 use crate::player::Player;
 
-pub use crate::game::MormonBridgeGame;
+pub use crate::game::ContractWhistGame;
 
 pub(crate) mod card;
 pub(crate) mod deck;

@@ -1,4 +1,4 @@
-//! Entrypoint for playing a game of Mormon Bridge.
+//! Entrypoint for playing a game of Contract Whist.
 //!
 //! # Todo
 //! - [ ] Update documentation
@@ -14,16 +14,16 @@ use crate::player::{AIPlayer, HumanPlayer, Player};
 use crate::MAX_DISPLAY_WIDTH;
 
 /// Struct of the Game.
-pub struct MormonBridgeGame {}
+pub struct ContractWhistGame {}
 
-impl MormonBridgeGame {
+impl ContractWhistGame {
     pub fn play(debug: bool) {
         println!();
-        println!("{:^1$}", "Welcome to Mormon Bridge!", MAX_DISPLAY_WIDTH);
+        println!("{:^1$}", "Welcome to Contract Whist!", MAX_DISPLAY_WIDTH);
         println!();
 
-        let num_players = MormonBridgeGame::get_number_of_players();
-        let player_name = MormonBridgeGame::get_human_player_name();
+        let num_players = ContractWhistGame::get_number_of_players();
+        let player_name = ContractWhistGame::get_human_player_name();
 
         println!();
         println!();
@@ -34,7 +34,7 @@ impl MormonBridgeGame {
 
         for i in 0..num_players {
             let ai = AIPlayer::new(
-                MormonBridgeGame::AI_PLAYER_NAMES
+                ContractWhistGame::AI_PLAYER_NAMES
                     .get(i)
                     .unwrap()
                     .to_string(),
@@ -44,11 +44,11 @@ impl MormonBridgeGame {
 
         println!("Welcome, {}", &players[0].get_name());
         println!("You are playing with:");
-        MormonBridgeGame::display_players(&players);
+        ContractWhistGame::display_players(&players);
 
         let tricks = match debug {
-            false => MormonBridgeGame::TRICKS_PER_HAND.to_vec(),
-            true => MormonBridgeGame::DEBUG_TRICKS.to_vec(),
+            false => ContractWhistGame::TRICKS_PER_HAND.to_vec(),
+            true => ContractWhistGame::DEBUG_TRICKS.to_vec(),
         };
 
         let mut cumulative_points: HashMap<&Box<dyn Player>, isize> =
@@ -73,13 +73,13 @@ impl MormonBridgeGame {
             }
 
             println!("Points through Hand {}", index + 1);
-            MormonBridgeGame::display_cumulative_points(&cumulative_points, &players);
+            ContractWhistGame::display_cumulative_points(&cumulative_points, &players);
         }
 
         println!();
         println!("Final Scores");
 
-        MormonBridgeGame::display_cumulative_points(&cumulative_points, &players);
+        ContractWhistGame::display_cumulative_points(&cumulative_points, &players);
     }
 
     fn display_players(players: &[Box<dyn Player>]) {

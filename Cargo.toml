@@ -1,14 +1,14 @@
 [package]
-name = "mormon-bridge"
+name = "contract-whist-rust"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "mormon_bridge"
+name = "contract_whist"
 path = "src/lib.rs"
 
 [[bin]]
-name = "mormon_bridge_game"
+name = "contract_whist_game"
 path = "src/bin.rs"
 
 
