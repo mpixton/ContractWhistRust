@@ -8,6 +8,7 @@
 
 use std::collections::HashMap;
 use std::io;
+use std::rc::Rc;
 
 use crate::hand::Hand;
 use crate::player::{AIPlayer, HumanPlayer, Player};
@@ -28,9 +29,9 @@ impl ContractWhistGame {
         println!();
         println!();
 
-        let mut players: Vec<Box<dyn Player>> = Vec::with_capacity(num_players + 1);
+        let mut players: Vec<Rc<dyn Player>> = Vec::with_capacity(num_players + 1);
         let human_player = HumanPlayer::new(player_name);
-        players.push(Box::new(human_player));
+        players.push(Rc::new(human_player));
 
         for i in 0..num_players {
             let ai = AIPlayer::new(
@@ -39,7 +40,7 @@ impl ContractWhistGame {
                     .unwrap()
                     .to_string(),
             );
-            players.push(Box::new(ai));
+            players.push(Rc::new(ai));
         }
 
         println!("Welcome, {}", &players[0].get_name());

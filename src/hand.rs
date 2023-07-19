@@ -24,11 +24,13 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
-use crate::card::Card;
-use crate::deck::{Deck, DeckType};
 use crate::player::Player;
 use crate::trick::Trick;
 use crate::{PlayerHands, MAX_DISPLAY_WIDTH};
+use playing_cards::{
+    card::Card,
+    deck::{Deck, DeckType},
+};
 
 /// Base struct of the Hand, used with the HandState trait structs.
 ///

@@ -17,10 +17,10 @@
 
 use std::collections::HashMap;
 
-use crate::card::Card;
 use crate::player::Player;
-use crate::suit::Suit;
 use crate::PlayerHands;
+use playing_cards::card::Card;
+use playing_cards::suit::Suit;
 
 /// Trick struct for using Generic Type Parameters.
 pub struct Trick<'a> {
@@ -190,9 +190,8 @@ impl<'a, 'b, 'c> InProgressTrick<Scoring<'a, 'b>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::player::AIPlayer;
-    use crate::rank::Rank;
-    use crate::suit::Suit;
+    use playing_cards::rank::Rank;
+    use playing_cards::suit::Suit;
 
     fn setup_trump() -> Card {
         Card::new(Rank::Ace, Suit::Hearts)

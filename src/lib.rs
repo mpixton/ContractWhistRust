@@ -2,18 +2,14 @@
 
 use std::collections::HashMap;
 
-use crate::card::Card;
 use crate::player::Player;
+use playing_cards::card::Card;
 
 pub use crate::game::ContractWhistGame;
 
-pub(crate) mod card;
-pub(crate) mod deck;
 pub(crate) mod game;
 pub(crate) mod hand;
 pub(crate) mod player;
-pub(crate) mod rank;
-pub(crate) mod suit;
 pub(crate) mod trick;
 
 /// Type alias for Player Hand.

@@ -16,3 +16,4 @@ path = "src/bin.rs"
 
 [dependencies]
 rand = "0.6.0"
+playing_cards = { path = "../playing_cards" }

@@ -24,7 +24,8 @@
 
 use std::{fmt, hash, io};
 
-use crate::{card::Card, MAX_DISPLAY_WIDTH};
+use crate::MAX_DISPLAY_WIDTH;
+use playing_cards::card::Card;
 
 /// Trait defining base Player behavior.
 ///
@@ -365,9 +366,9 @@ impl Player for AIPlayer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::card::Card;
-    use crate::rank::Rank;
-    use crate::suit::Suit;
+    use playing_cards::card::Card;
+    use playing_cards::rank::Rank;
+    use playing_cards::suit::Suit;
 
     fn setup() -> (Card, Card, AIPlayer) {
         (
